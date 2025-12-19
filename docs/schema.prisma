@@ -1,0 +1,426 @@
+// Prisma Schema for Real Estate Investment Analyzer
+// This is a reference file - actual schema will be in apps/backend/prisma/
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum GermanState {
+  BADEN_WUERTTEMBERG
+  BAYERN
+  BERLIN
+  BRANDENBURG
+  BREMEN
+  HAMBURG
+  HESSEN
+  MECKLENBURG_VORPOMMERN
+  NIEDERSACHSEN
+  NORDRHEIN_WESTFALEN
+  RHEINLAND_PFALZ
+  SAARLAND
+  SACHSEN
+  SACHSEN_ANHALT
+  SCHLESWIG_HOLSTEIN
+  THUERINGEN
+}
+
+enum PropertyStatus {
+  INITIAL_INPUT
+  APPOINTMENT_SCHEDULED
+  VISITED
+  OFFER_MADE
+  REJECTED
+  PURCHASED
+}
+
+enum EnergyClass {
+  A_PLUS
+  A
+  B
+  C
+  D
+  E
+  F
+  G
+  H
+}
+
+enum RenovationStatus {
+  UNRENOVATED
+  COSMETIC
+  QUALITY
+  CORE
+}
+
+enum FurnishingStatus {
+  EMPTY
+  KITCHEN_ONLY
+  KITCHEN_EQUIPPED
+  FULLY_FURNISHED
+}
+
+enum ParkingType {
+  OUTDOOR
+  CARPORT
+  UNDERGROUND
+  GARAGE
+  DUPLEX
+}
+
+enum BuildingType {
+  ALTBAU_PRE1918
+  ALTBAU_1918_1949
+  NEUBAU_1950_1989
+  PLATTENBAU
+  NEUBAU_1990_2010
+  NEUBAU_POST2010
+  NEW_CONSTRUCTION
+}
+
+enum SourceType {
+  BUILDER
+  MAKLER
+  PRIVATE
+  AUCTION
+  OTHER
+}
+
+enum TaxFilingType {
+  SINGLE
+  JOINT
+}
+
+enum AfaType {
+  LINEAR_2
+  LINEAR_2_5
+  LINEAR_3
+  LINEAR_4
+  DEGRESSIVE_5
+}
+
+// ============================================
+// ENTITIES
+// ============================================
+
+model Property {
+  id                          String           @id @default(uuid())
+  
+  // ─────────────────────────────────────────
+  // Basic Info
+  // ─────────────────────────────────────────
+  name                        String
+  address                     String?
+  city                        String
+  state                       GermanState
+  propertyStatus              PropertyStatus   @default(INITIAL_INPUT)
+  
+  // ─────────────────────────────────────────
+  // Property Details
+  // ─────────────────────────────────────────
+  propertySize                Decimal          @db.Decimal(10, 2)
+  numberOfRooms               Decimal?         @db.Decimal(3, 1)
+  purchasePrice               Decimal          @db.Decimal(12, 2)
+  landValuePercent            Decimal          @db.Decimal(5, 4)
+  constructionYear            Int?
+  propertyCompletionYear      Int?
+  purchaseInMonths            Int              @default(0)
+  energyClass                 EnergyClass?
+  furnishingStatus            FurnishingStatus?
+  
+  // ─────────────────────────────────────────
+  // Floor & Layout
+  // ─────────────────────────────────────────
+  floorLevel                  Int?
+  totalFloors                 Int?
+  hasBalcony                  Boolean          @default(false)
+  balconySize                 Decimal?         @db.Decimal(6, 2)
+  hasTerrace                  Boolean          @default(false)
+  terraceSize                 Decimal?         @db.Decimal(6, 2)
+  hasGarden                   Boolean          @default(false)
+  gardenSize                  Decimal?         @db.Decimal(8, 2)
+  hasCellar                   Boolean          @default(false)
+  cellarSize                  Decimal?         @db.Decimal(6, 2)
+  
+  // ─────────────────────────────────────────
+  // Building Details
+  // ─────────────────────────────────────────
+  buildingType                BuildingType?
+  numberOfUnitsInBuilding     Int?
+  hasElevator                 Boolean          @default(false)
+  
+  // ─────────────────────────────────────────
+  // Parking
+  // ─────────────────────────────────────────
+  hasParkingSpace             Boolean          @default(false)
+  parkingType                 ParkingType?
+  parkingPrice                Decimal          @default(0) @db.Decimal(10, 2)
+  parkingIncludedInPrice      Boolean          @default(true)
+  
+  // ─────────────────────────────────────────
+  // Purchase Costs
+  // ─────────────────────────────────────────
+  maklerFeePercent            Decimal          @default(0) @db.Decimal(5, 4)
+  
+  // ─────────────────────────────────────────
+  // Renovation
+  // ─────────────────────────────────────────
+  renovationStatus            RenovationStatus?
+  renovationCost              Decimal          @default(0) @db.Decimal(12, 2)
+  renovationYear              Int?
+  renovationTaxDeductible     Boolean          @default(false)
+  
+  // ─────────────────────────────────────────
+  // Rental Details
+  // ─────────────────────────────────────────
+  rentalPricePerM2            Decimal          @db.Decimal(8, 2)
+  parkingRentalIncome         Decimal          @default(0) @db.Decimal(8, 2)
+  houseAppreciation           Decimal          @db.Decimal(5, 4)
+  rentalDelayPeriod           Int              @default(0)
+  guaranteedRentPeriod        Int              @default(0)
+  rentalPriceAfterGuaranteed  Decimal?         @db.Decimal(8, 2)
+  vacancyRate                 Decimal          @default(0.02) @db.Decimal(5, 4)
+  
+  // ─────────────────────────────────────────
+  // Rent Increment Settings
+  // ─────────────────────────────────────────
+  rentIncrementPercent        Decimal          @default(0.02) @db.Decimal(5, 4)
+  rentIncrementFrequencyYears Int              @default(1)
+  
+  // ─────────────────────────────────────────
+  // Hausgeld (Monthly)
+  // ─────────────────────────────────────────
+  hausgeldTotal               Decimal          @default(0) @db.Decimal(8, 2)
+  hausgeldNichtUmlagefaehig   Decimal          @default(0) @db.Decimal(8, 2)
+  hausgeldUmlagefaehig        Decimal          @default(0) @db.Decimal(8, 2)
+  ruecklagePerSqm             Decimal          @default(0) @db.Decimal(6, 4)
+  
+  // ─────────────────────────────────────────
+  // Source / Acquisition
+  // ─────────────────────────────────────────
+  sourceType                  SourceType?
+  sourceName                  String?
+  sourceContact               String?
+  
+  // ─────────────────────────────────────────
+  // Comments
+  // ─────────────────────────────────────────
+  generalComments             String?          @db.Text
+  visitComments               String?          @db.Text
+  visitDate                   DateTime?        @db.Date
+  
+  // ─────────────────────────────────────────
+  // Timestamps
+  // ─────────────────────────────────────────
+  createdAt                   DateTime         @default(now())
+  updatedAt                   DateTime         @updatedAt
+  
+  // ─────────────────────────────────────────
+  // Relations
+  // ─────────────────────────────────────────
+  financingScenarios          FinancingScenario[]
+  taxProfile                  TaxProfile?
+  investmentAssumptions       InvestmentAssumptions?
+  calculationResults          CalculationResult[]
+  
+  // ─────────────────────────────────────────
+  // Indexes
+  // ─────────────────────────────────────────
+  @@index([city])
+  @@index([state])
+  @@index([propertyStatus])
+  @@index([createdAt])
+}
+
+model FinancingScenario {
+  id                      String   @id @default(uuid())
+  propertyId              String
+  property                Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  
+  scenarioName            String
+  scenarioOrder           Int
+  
+  // ─────────────────────────────────────────
+  // Bank Loan
+  // ─────────────────────────────────────────
+  ltvPercent              Decimal  @db.Decimal(5, 2)
+  bankInterestRate        Decimal  @db.Decimal(5, 4)
+  bankFixedPeriod         Int
+  repaymentRate           Decimal  @db.Decimal(5, 4)
+  bankAcquisitionCost     Decimal  @default(0) @db.Decimal(10, 2)  // Tax deductible
+  disburseBankLoanFirst   Boolean  @default(false)
+  
+  // ─────────────────────────────────────────
+  // KfW Loan (optional)
+  // ─────────────────────────────────────────
+  kfwLoanSize             Decimal  @default(0) @db.Decimal(12, 2)
+  kfwInterestRate         Decimal  @default(0) @db.Decimal(5, 4)
+  kfwFixedPeriod          Int      @default(10)
+  kfwRepaymentFreePeriod  Int      @default(0)
+  kfwPaybackPeriod        Int      @default(35)
+  kfwTilgungszuschuss     Decimal  @default(0) @db.Decimal(12, 2)
+  kfwAcquisitionCost      Decimal  @default(0) @db.Decimal(10, 2)  // Tax deductible
+  
+  // ─────────────────────────────────────────
+  // Comments
+  // ─────────────────────────────────────────
+  comments                String?  @db.Text
+  
+  // ─────────────────────────────────────────
+  // Timestamps
+  // ─────────────────────────────────────────
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  
+  // Relations
+  calculationResults      CalculationResult[]
+  
+  @@unique([propertyId, scenarioOrder])
+  @@index([propertyId])
+}
+
+model TaxProfile {
+  id                  String        @id @default(uuid())
+  propertyId          String        @unique
+  property            Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  
+  annualGrossIncome   Decimal       @db.Decimal(12, 2)
+  taxFilingType       TaxFilingType
+  churchTaxRate       Decimal       @default(0) @db.Decimal(4, 2)
+  numberOfChildren    Int           @default(0)
+  otherDeductions     Decimal       @default(0) @db.Decimal(12, 2)
+  
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+}
+
+model InvestmentAssumptions {
+  id                              String   @id @default(uuid())
+  propertyId                      String   @unique
+  property                        Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  
+  // ─────────────────────────────────────────
+  // Depreciation (AfA)
+  // ─────────────────────────────────────────
+  afaType                         AfaType  @default(LINEAR_2_5)
+  sonderAfaEligible               Boolean  @default(false)
+  sonderAfaPercent                Decimal  @default(0) @db.Decimal(4, 2)
+  sonderAfaYears                  Int      @default(0)
+  denkmalschutzEligible           Boolean  @default(false)
+  denkmalschutzOldValue           Decimal  @default(0) @db.Decimal(12, 2)
+  denkmalschutzRenovationCost     Decimal  @default(0) @db.Decimal(12, 2)
+  
+  // ─────────────────────────────────────────
+  // Additional Operating Costs (beyond Hausgeld)
+  // ─────────────────────────────────────────
+  propertyManagementPercent       Decimal  @default(0) @db.Decimal(4, 2)
+  insuranceCostAnnual             Decimal  @default(0) @db.Decimal(8, 2)
+  otherOperatingCosts             Decimal  @default(0) @db.Decimal(8, 2)
+  
+  createdAt                       DateTime @default(now())
+  updatedAt                       DateTime @updatedAt
+}
+
+model CalculationResult {
+  id                      String             @id @default(uuid())
+  propertyId              String
+  property                Property           @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  financingScenarioId     String
+  financingScenario       FinancingScenario  @relation(fields: [financingScenarioId], references: [id], onDelete: Cascade)
+  
+  calculatedAt            DateTime           @default(now())
+  inputSnapshot           Json
+  
+  // ─────────────────────────────────────────
+  // Summary KPIs
+  // ─────────────────────────────────────────
+  irr10Year               Decimal            @db.Decimal(6, 4)
+  irr15Year               Decimal            @db.Decimal(6, 4)
+  irr30Year               Decimal            @db.Decimal(6, 4)
+  totalProfitAtExit       Decimal            @db.Decimal(14, 2)
+  upfrontInvestment       Decimal            @db.Decimal(12, 2)
+  monthlyNetCashflowYear1 Decimal            @db.Decimal(10, 2)
+  grossYield              Decimal            @db.Decimal(6, 4)
+  netYield                Decimal            @db.Decimal(6, 4)
+  cashOnCashReturn        Decimal            @db.Decimal(6, 4)
+  
+  // ─────────────────────────────────────────
+  // Profit Breakdown
+  // ─────────────────────────────────────────
+  profitFromAppreciation  Decimal            @db.Decimal(14, 2)
+  profitFromOperating     Decimal            @db.Decimal(14, 2)
+  profitFromTaxSavings    Decimal            @db.Decimal(14, 2)
+  totalTaxSavingsFromAfa  Decimal            @db.Decimal(14, 2)
+  
+  // Remaining loan at end of projection
+  remainingLoanAtYear30   Decimal            @db.Decimal(12, 2)
+  
+  createdAt               DateTime           @default(now())
+  
+  // Relations
+  yearlyCashflows         YearlyCashflowRow[]
+  
+  @@index([propertyId])
+  @@index([financingScenarioId])
+  @@index([calculatedAt])
+}
+
+model YearlyCashflowRow {
+  id                        String            @id @default(uuid())
+  calculationResultId       String
+  calculationResult         CalculationResult @relation(fields: [calculationResultId], references: [id], onDelete: Cascade)
+  
+  year                      Int
+  calendarYear              Int
+  
+  // ─────────────────────────────────────────
+  // Income
+  // ─────────────────────────────────────────
+  rentalIncome              Decimal           @db.Decimal(12, 2)
+  parkingIncome             Decimal           @db.Decimal(10, 2)
+  totalIncome               Decimal           @db.Decimal(12, 2)
+  
+  // ─────────────────────────────────────────
+  // Expenses
+  // ─────────────────────────────────────────
+  mortgagePayment           Decimal           @db.Decimal(12, 2)
+  kfwPayment                Decimal           @db.Decimal(12, 2)
+  interestPortion           Decimal           @db.Decimal(12, 2)
+  principalPortion          Decimal           @db.Decimal(12, 2)
+  hausgeldNichtUmlagefaehig Decimal           @db.Decimal(10, 2)
+  otherCosts                Decimal           @db.Decimal(10, 2)
+  totalExpenses             Decimal           @db.Decimal(12, 2)
+  
+  // ─────────────────────────────────────────
+  // Tax
+  // ─────────────────────────────────────────
+  depreciationAmount        Decimal           @db.Decimal(12, 2)
+  taxableIncome             Decimal           @db.Decimal(12, 2)
+  taxRefund                 Decimal           @db.Decimal(10, 2)
+  
+  // ─────────────────────────────────────────
+  // Cashflow
+  // ─────────────────────────────────────────
+  netCashflowBeforeTax      Decimal           @db.Decimal(12, 2)
+  netCashflowAfterTax       Decimal           @db.Decimal(12, 2)
+  cumulativeCashflow        Decimal           @db.Decimal(14, 2)
+  
+  // ─────────────────────────────────────────
+  // Loan Status
+  // ─────────────────────────────────────────
+  remainingBankLoan         Decimal           @db.Decimal(12, 2)
+  remainingKfwLoan          Decimal           @db.Decimal(12, 2)
+  propertyValue             Decimal           @db.Decimal(14, 2)
+  equity                    Decimal           @db.Decimal(14, 2)
+  
+  @@unique([calculationResultId, year])
+  @@index([calculationResultId])
+}
