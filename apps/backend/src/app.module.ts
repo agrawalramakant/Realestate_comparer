@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { HealthController } from './health/health.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { PropertyModule } from './property/property.module';
+import { FinancingModule } from './financing/financing.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { PropertyModule } from './property/property.module';
     }),
     PrismaModule,
     PropertyModule,
+    FinancingModule,
   ],
   controllers: [HealthController],
   providers: [],
