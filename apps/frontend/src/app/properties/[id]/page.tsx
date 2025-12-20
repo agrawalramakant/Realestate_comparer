@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, Edit, MapPin } from 'lucide-react';
 import { FinancingScenarios } from '@/components/financing/FinancingScenarios';
+import { ScenarioAnalysis } from '@/components/calculation/ScenarioAnalysis';
+import { useFinancingScenarios } from '@/lib/hooks/use-financing';
 
 const STATUS_LABELS: Record<string, string> = {
   INITIAL_INPUT: 'Initial Input',
@@ -159,8 +161,21 @@ export default function PropertyDetailPage() {
         propertyId={id}
         purchasePrice={parseFloat(property.purchasePrice)}
       />
+
+      {/* Scenario Analysis */}
+      <ScenarioAnalysisSection propertyId={id} />
     </div>
   );
+}
+
+function ScenarioAnalysisSection({ propertyId }: { propertyId: string }) {
+  const { data: scenarios, isLoading } = useFinancingScenarios(propertyId);
+
+  if (isLoading || !scenarios || scenarios.length === 0) {
+    return null;
+  }
+
+  return <ScenarioAnalysis propertyId={propertyId} scenarios={scenarios} />;
 }
 
 function DetailItem({ label, value }: { label: string; value: string }) {
