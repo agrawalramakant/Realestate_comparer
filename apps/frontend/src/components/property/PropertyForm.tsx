@@ -1,8 +1,10 @@
 'use client';
 
 import { useForm } from 'react-hook-form';
+import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { FormattedNumberInput } from '@/components/ui/formatted-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -36,6 +38,9 @@ export function PropertyForm({ initialData, onSubmit, isLoading }: PropertyFormP
     register,
     handleSubmit,
     formState: { errors },
+    control,
+    setValue,
+    watch,
   } = useForm({
     defaultValues: {
       name: '',
@@ -43,19 +48,43 @@ export function PropertyForm({ initialData, onSubmit, isLoading }: PropertyFormP
       state: 'BERLIN',
       propertySize: '',
       purchasePrice: '',
-      landValuePercent: '0.2',
+      landValuePercent: '20', // Now in percentage (20 = 20%)
+      landValueAbsolute: '', // Calculated field
       rentalPricePerM2: '',
       ...initialData,
     },
   });
 
+  // Watch purchase price and land value fields
+  const purchasePrice = watch('purchasePrice');
+  const landValuePercent = watch('landValuePercent');
+  const landValueAbsolute = watch('landValueAbsolute');
+
+  // Track which field is being edited to prevent sync loops
+  const editingFieldRef = useRef<'percent' | 'absolute' | null>(null);
+
+  // Sync land value absolute when percentage changes (only if user is editing percent)
+  useEffect(() => {
+    if (editingFieldRef.current === 'absolute') return; // Don't sync if user is editing absolute
+    
+    const price = parseFloat(purchasePrice as string) || 0;
+    const percent = parseFloat(landValuePercent as string) || 0;
+    if (price > 0 && percent >= 0) {
+      const absoluteValue = (price * percent / 100).toFixed(0);
+      setValue('landValueAbsolute', absoluteValue, { shouldValidate: false });
+    }
+  }, [purchasePrice, landValuePercent, setValue]);
+
+
   const onFormSubmit = (data: Record<string, unknown>) => {
     // Convert string numbers to actual numbers
+    // Convert percentage (e.g., 20) to decimal (e.g., 0.2) for API
+    const { landValueAbsolute, ...rest } = data;
     const processed = {
-      ...data,
+      ...rest,
       propertySize: parseFloat(data.propertySize as string),
       purchasePrice: parseFloat(data.purchasePrice as string),
-      landValuePercent: parseFloat(data.landValuePercent as string),
+      landValuePercent: parseFloat(data.landValuePercent as string) / 100,
       rentalPricePerM2: parseFloat(data.rentalPricePerM2 as string),
     };
     onSubmit(processed);
@@ -134,16 +163,14 @@ export function PropertyForm({ initialData, onSubmit, isLoading }: PropertyFormP
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="purchasePrice">Purchase Price (€) *</Label>
-            <Input
+            <Label htmlFor="purchasePrice">Purchase Price *</Label>
+            <FormattedNumberInput
               id="purchasePrice"
-              type="number"
-              step="1"
-              placeholder="e.g., 350000"
-              {...register('purchasePrice', {
-                required: 'Price is required',
-                min: { value: 1, message: 'Price must be positive' },
-              })}
+              placeholder="e.g., 350.000"
+              suffix="€"
+              value={purchasePrice as string}
+              onChange={(val) => setValue('purchasePrice', val)}
+              formatOptions={{ maximumFractionDigits: 0 }}
             />
             {errors.purchasePrice && (
               <p className="text-sm text-destructive">{errors.purchasePrice.message as string}</p>
@@ -151,18 +178,48 @@ export function PropertyForm({ initialData, onSubmit, isLoading }: PropertyFormP
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="landValuePercent">Land Value %</Label>
-            <Input
-              id="landValuePercent"
-              type="number"
-              step="0.01"
-              min="0"
-              max="1"
-              placeholder="e.g., 0.2"
-              {...register('landValuePercent')}
-            />
+            <Label htmlFor="landValuePercent">Land Value (%)</Label>
+            <div className="flex gap-2 items-center">
+              <div className="flex-1">
+                <Input
+                  id="landValuePercent"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  placeholder="e.g., 20"
+                  {...register('landValuePercent')}
+                  onFocus={() => { editingFieldRef.current = 'percent'; }}
+                  onBlur={() => { editingFieldRef.current = null; }}
+                />
+              </div>
+              <span className="text-muted-foreground text-sm">%</span>
+              <span className="text-muted-foreground">=</span>
+              <div className="flex-1">
+                <FormattedNumberInput
+                  id="landValueAbsolute"
+                  placeholder="€ value"
+                  suffix="€"
+                  value={landValueAbsolute as string || ''}
+                  onChange={(val) => {
+                    editingFieldRef.current = 'absolute';
+                    const absoluteValue = parseFloat(val) || 0;
+                    const price = parseFloat(purchasePrice as string) || 0;
+                    if (price > 0 && absoluteValue > 0) {
+                      const percent = ((absoluteValue / price) * 100).toFixed(1);
+                      setValue('landValuePercent', percent, { shouldValidate: false });
+                    }
+                    setValue('landValueAbsolute', val);
+                    setTimeout(() => { editingFieldRef.current = null; }, 100);
+                  }}
+                  onFocus={() => { editingFieldRef.current = 'absolute'; }}
+                  onBlur={() => { editingFieldRef.current = null; }}
+                  formatOptions={{ maximumFractionDigits: 0 }}
+                />
+              </div>
+            </div>
             <p className="text-xs text-muted-foreground">
-              Typically 15-25% for apartments
+              Typically 15-25% for apartments. Both fields stay in sync.
             </p>
           </div>
 

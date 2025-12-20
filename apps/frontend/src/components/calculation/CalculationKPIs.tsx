@@ -21,8 +21,29 @@ export function CalculationKPIs({ propertyId, scenarioId, scenarioName }: Calcul
     runCalculation.mutate();
   };
 
+  // Show skeleton while calculating (this takes priority)
+  if (runCalculation.isPending) {
+    return <CalculationKPIsSkeleton scenarioName={scenarioName} message="Running financial analysis... This may take a few seconds." showSpinner />;
+  }
+
+  // Show minimal loading indicator while checking for existing results
   if (isLoading) {
-    return <CalculationKPIsSkeleton />;
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calculator className="h-5 w-5" />
+            {scenarioName} - Analysis
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-6">
+            <RefreshCw className="h-6 w-6 mx-auto text-muted-foreground animate-spin mb-2" />
+            <p className="text-sm text-muted-foreground">Checking for existing results...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   if (!result) {
@@ -36,21 +57,14 @@ export function CalculationKPIs({ propertyId, scenarioId, scenarioName }: Calcul
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <p className="text-muted-foreground mb-4">
-              No calculation results yet. Run the analysis to see KPIs.
+            <Calculator className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="font-semibold text-lg mb-2">No Analysis Yet</h3>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+              Run the financial analysis to calculate IRR, yields, cashflows, and profit projections for this financing scenario.
             </p>
-            <Button onClick={handleCalculate} disabled={runCalculation.isPending}>
-              {runCalculation.isPending ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Calculating...
-                </>
-              ) : (
-                <>
-                  <Calculator className="h-4 w-4 mr-2" />
-                  Run Calculation
-                </>
-              )}
+            <Button onClick={handleCalculate} size="lg">
+              <Calculator className="h-4 w-4 mr-2" />
+              Run Financial Analysis
             </Button>
           </div>
         </CardContent>
@@ -182,13 +196,34 @@ function KPICard({ icon, label, value, highlight, valueClass }: KPICardProps) {
   );
 }
 
-function CalculationKPIsSkeleton() {
+interface CalculationKPIsSkeletonProps {
+  scenarioName?: string;
+  message?: string;
+  showSpinner?: boolean;
+}
+
+function CalculationKPIsSkeleton({ scenarioName, message, showSpinner }: CalculationKPIsSkeletonProps) {
   return (
     <Card>
       <CardHeader>
-        <Skeleton className="h-6 w-48" />
+        <CardTitle className="flex items-center gap-2">
+          {showSpinner ? (
+            <RefreshCw className="h-5 w-5 animate-spin text-primary" />
+          ) : (
+            <Calculator className="h-5 w-5" />
+          )}
+          {scenarioName ? `${scenarioName} - Analysis` : <Skeleton className="h-6 w-48" />}
+        </CardTitle>
       </CardHeader>
       <CardContent>
+        {message && (
+          <div className="text-center py-4 mb-4">
+            <p className="text-muted-foreground flex items-center justify-center gap-2">
+              {showSpinner && <RefreshCw className="h-4 w-4 animate-spin" />}
+              {message}
+            </p>
+          </div>
+        )}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[...Array(8)].map((_, i) => (
             <Skeleton key={i} className="h-20 w-full" />
