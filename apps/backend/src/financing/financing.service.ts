@@ -23,20 +23,38 @@ export class FinancingService {
     });
     const nextOrder = (maxOrder._max.scenarioOrder ?? 0) + 1;
 
+    // Map DTO fields to Prisma schema fields
+    const {
+      kfwPrincipalFreeYears,
+      kfwLoanAmount,
+      kfwRepaymentRate,
+      ...rest
+    } = dto;
+    
     return this.prisma.financingScenario.create({
       data: {
-        ...dto,
+        ...rest,
         propertyId,
         scenarioOrder: dto.scenarioOrder ?? nextOrder,
+        // Map API field names to Prisma field names
+        kfwLoanSize: kfwLoanAmount,
+        kfwRepaymentFreePeriod: kfwPrincipalFreeYears,
       } as Prisma.FinancingScenarioUncheckedCreateInput,
     });
   }
 
   async findAllByProperty(propertyId: string) {
-    return this.prisma.financingScenario.findMany({
+    const scenarios = await this.prisma.financingScenario.findMany({
       where: { propertyId },
       orderBy: { scenarioOrder: 'asc' },
     });
+    
+    // Map Prisma fields to API fields
+    return scenarios.map(({ kfwRepaymentFreePeriod, kfwLoanSize, ...rest }) => ({
+      ...rest,
+      kfwLoanAmount: kfwLoanSize,
+      kfwPrincipalFreeYears: kfwRepaymentFreePeriod,
+    }));
   }
 
   async findOne(id: string) {
@@ -49,15 +67,28 @@ export class FinancingService {
       throw new NotFoundException(`Financing scenario with ID ${id} not found`);
     }
 
-    return scenario;
+    // Map Prisma fields to API fields
+    const { kfwRepaymentFreePeriod, kfwLoanSize, ...rest } = scenario;
+    return {
+      ...rest,
+      kfwLoanAmount: kfwLoanSize,
+      kfwPrincipalFreeYears: kfwRepaymentFreePeriod,
+    };
   }
 
   async update(id: string, dto: UpdateFinancingDto) {
     await this.findOne(id); // Throws if not found
 
+    // Map DTO fields to Prisma schema fields
+    const { kfwPrincipalFreeYears, kfwLoanAmount, kfwRepaymentRate, ...rest } = dto;
+
     return this.prisma.financingScenario.update({
       where: { id },
-      data: dto as Prisma.FinancingScenarioUpdateInput,
+      data: {
+        ...rest,
+        ...(kfwLoanAmount !== undefined && { kfwLoanSize: kfwLoanAmount }),
+        ...(kfwPrincipalFreeYears !== undefined && { kfwRepaymentFreePeriod: kfwPrincipalFreeYears }),
+      } as Prisma.FinancingScenarioUpdateInput,
     });
   }
 

@@ -31,6 +31,7 @@ interface FormValues {
   kfwInterestRate?: number; // 1 = 1%
   kfwFixedPeriod?: number;
   kfwRepaymentRate?: number; // 2 = 2%
+  kfwPrincipalFreeYears?: number; // Repayment-free period in years
 }
 
 interface FinancingDialogProps {
@@ -88,6 +89,7 @@ export function FinancingDialog({
           kfwInterestRate: scenario.kfwInterestRate ? parseFloat(scenario.kfwInterestRate) * 100 : undefined,
           kfwFixedPeriod: scenario.kfwFixedPeriod || undefined,
           kfwRepaymentRate: scenario.kfwRepaymentRate ? parseFloat(scenario.kfwRepaymentRate) * 100 : undefined,
+          kfwPrincipalFreeYears: scenario.kfwPrincipalFreeYears || undefined,
         });
       } else {
         reset({
@@ -113,9 +115,10 @@ export function FinancingDialog({
       bankFixedPeriod: formData.bankFixedPeriod,
       repaymentRate: formData.repaymentRate / 100,
       kfwLoanAmount: formData.showKfwLoan ? formData.kfwLoanAmount : undefined,
-      kfwInterestRate: formData.kfwInterestRate ? formData.kfwInterestRate / 100 : undefined,
-      kfwFixedPeriod: formData.kfwFixedPeriod,
-      kfwRepaymentRate: formData.kfwRepaymentRate ? formData.kfwRepaymentRate / 100 : undefined,
+      kfwInterestRate: formData.showKfwLoan && formData.kfwInterestRate ? formData.kfwInterestRate / 100 : undefined,
+      kfwFixedPeriod: formData.showKfwLoan ? formData.kfwFixedPeriod : undefined,
+      kfwRepaymentRate: formData.showKfwLoan && formData.kfwRepaymentRate ? formData.kfwRepaymentRate / 100 : undefined,
+      kfwPrincipalFreeYears: formData.showKfwLoan ? formData.kfwPrincipalFreeYears : undefined,
     };
 
     try {
@@ -340,6 +343,21 @@ export function FinancingDialog({
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">%</span>
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="kfwPrincipalFreeYears">Repayment-Free Period (years)</Label>
+                  <Input
+                    id="kfwPrincipalFreeYears"
+                    type="number"
+                    min="0"
+                    max="5"
+                    placeholder="5"
+                    {...register('kfwPrincipalFreeYears', { valueAsNumber: true })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Years with interest-only payments (no principal)
+                  </p>
                 </div>
               </div>
             )}

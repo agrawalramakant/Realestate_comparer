@@ -178,6 +178,12 @@ function ScenarioCard({ scenario, purchasePrice, index, onEdit, onDelete }: Scen
               <p className="text-muted-foreground">KfW Rate</p>
               <p className="font-medium">{formatPercent(scenario.kfwInterestRate || '0')}</p>
             </div>
+            {scenario.kfwPrincipalFreeYears && scenario.kfwPrincipalFreeYears > 0 && (
+              <div>
+                <p className="text-muted-foreground">Principal-Free Period</p>
+                <p className="font-medium">{scenario.kfwPrincipalFreeYears} years</p>
+              </div>
+            )}
           </>
         )}
       </div>

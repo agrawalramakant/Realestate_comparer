@@ -75,7 +75,7 @@ export class CreateFinancingDto {
   @IsInt()
   @Min(0)
   @Max(5)
-  kfwTilgungsfreieJahre?: number; // Grace period years
+  kfwPrincipalFreeYears?: number; // Grace period years
 
   @IsOptional()
   @IsNumber()

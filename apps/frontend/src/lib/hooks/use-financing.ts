@@ -16,7 +16,7 @@ export interface FinancingScenario {
   kfwInterestRate: string | null;
   kfwFixedPeriod: number | null;
   kfwRepaymentRate: string | null;
-  kfwTilgungsfreieJahre: number | null;
+  kfwPrincipalFreeYears: number | null;
   kfwAcquisitionCost: string | null;
   bankInterestRateAfterFixed: string | null;
   kfwInterestRateAfterFixed: string | null;
@@ -35,7 +35,7 @@ export interface CreateFinancingInput {
   kfwInterestRate?: number;
   kfwFixedPeriod?: number;
   kfwRepaymentRate?: number;
-  kfwTilgungsfreieJahre?: number;
+  kfwPrincipalFreeYears?: number;
 }
 
 export function useFinancingScenarios(propertyId: string) {
