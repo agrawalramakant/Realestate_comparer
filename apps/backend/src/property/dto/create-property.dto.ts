@@ -314,4 +314,17 @@ export class CreatePropertyDto {
   @Min(0)
   @Max(10)
   sonderAfaYears?: number;
+
+  // ─────────────────────────────────────────
+  // Tax Profile
+  // These are stored in TaxProfile, not Property
+  // ─────────────────────────────────────────
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  annualGrossIncome?: number;
+
+  @IsOptional()
+  @IsString()
+  taxFilingType?: string;
 }
