@@ -84,6 +84,10 @@ export function PropertyForm({ initialData, onSubmit, isLoading }: PropertyFormP
       sonderAfaPercent: '5',
       sonderAfaYears: '4',
       
+      // Tax Profile
+      annualGrossIncome: '',
+      taxFilingType: 'SINGLE',
+      
       ...initialData,
     },
   });
@@ -114,6 +118,7 @@ export function PropertyForm({ initialData, onSubmit, isLoading }: PropertyFormP
   const sonderAfaEligible = watch('sonderAfaEligible');
   const maklerFeePercent = watch('maklerFeePercent');
   const afaType = watch('afaType');
+  const annualGrossIncome = watch('annualGrossIncome');
 
   const onFormSubmit = (data: Record<string, unknown>) => {
     // Convert string numbers to actual numbers
@@ -158,6 +163,9 @@ export function PropertyForm({ initialData, onSubmit, isLoading }: PropertyFormP
       sonderAfaEligible: data.sonderAfaEligible as boolean,
       sonderAfaPercent: data.sonderAfaPercent ? (parseFloat(data.sonderAfaPercent as string) || 0) / 100 : 0,
       sonderAfaYears: data.sonderAfaYears ? parseInt(data.sonderAfaYears as string) : 0,
+      // Tax Profile
+      annualGrossIncome: data.annualGrossIncome ? parseFloat(data.annualGrossIncome as string) : null,
+      taxFilingType: data.taxFilingType as string || 'SINGLE',
     };
     
     onSubmit(processed);
@@ -520,6 +528,66 @@ export function PropertyForm({ initialData, onSubmit, isLoading }: PropertyFormP
                 </div>
               </div>
             </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Tax Profile */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Tax Profile</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="annualGrossIncome">Annual Gross Income (€)</Label>
+            <FormattedNumberInput
+              id="annualGrossIncome"
+              placeholder="e.g., 80.000"
+              suffix="€"
+              value={annualGrossIncome as string}
+              onChange={(val) => setValue('annualGrossIncome', val)}
+              formatOptions={{ maximumFractionDigits: 0 }}
+            />
+            <p className="text-xs text-muted-foreground">
+              Your total annual income (for marginal tax rate calculation)
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="taxFilingType">Tax Filing Type</Label>
+            <select
+              id="taxFilingType"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              {...register('taxFilingType')}
+            >
+              <option value="SINGLE">Single (Einzelveranlagung)</option>
+              <option value="JOINT">Joint / Married (Zusammenveranlagung)</option>
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Joint filing uses Ehegattensplitting (lower tax rate)
+            </p>
+          </div>
+
+          {annualGrossIncome && parseFloat(annualGrossIncome as string) > 0 && (
+            <div className="md:col-span-2 p-3 bg-muted rounded-md">
+              <p className="text-sm">
+                <strong>Estimated Marginal Tax Rate:</strong>{' '}
+                {(() => {
+                  const income = parseFloat(annualGrossIncome as string) || 0;
+                  const filingType = watch('taxFilingType');
+                  const incomeForBracket = filingType === 'JOINT' ? income / 2 : income;
+                  
+                  let rate: number;
+                  if (incomeForBracket <= 11604) rate = 0;
+                  else if (incomeForBracket <= 17005) rate = 0.14 + ((incomeForBracket - 11604) / 10000) * 0.10;
+                  else if (incomeForBracket <= 66760) rate = 0.24 + ((incomeForBracket - 17005) / (66760 - 17005)) * 0.18;
+                  else if (incomeForBracket <= 277825) rate = 0.42;
+                  else rate = 0.45;
+                  
+                  return `${(rate * 100).toFixed(1)}%`;
+                })()}
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>

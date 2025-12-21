@@ -190,20 +190,24 @@ export class CalculationService {
     const kfwInterestRate = this.toNumber(scenario.kfwInterestRate);
     const kfwPrincipalFreeYears = scenario.kfwRepaymentFreePeriod || 0;
     
-    // Tax values - calculate marginal tax rate from gross income
+    // Tax values - calculate marginal tax rate from gross income and filing type
     const taxRate = property.taxProfile 
-      ? this.calculateMarginalTaxRate(this.toNumber(property.taxProfile.annualGrossIncome))
+      ? this.calculateMarginalTaxRate(
+          this.toNumber(property.taxProfile.annualGrossIncome),
+          property.taxProfile.taxFilingType
+        )
       : 0.42;
     
-    // Calculate AfA base: building share of total acquisition cost (including fees)
+      // Calculate AfA base: building share of total acquisition cost (including fees)
     const landValuePercent = this.toNumber(property.landValuePercent);
     const maklerFeePercent = this.toNumber(property.maklerFeePercent);
     const state = property.state;
     const transferTaxRate = this.getTransferTaxRate(state);
-    const notaryRate = 0.015; // ~1.5% for notary and registration
+    const notaryRate = 0.015; // ~1.5% for notary
+    const grundbuchRate = 0.005; // 0.5% for land registry entry (Grundbucheintragung)
     
     // Total acquisition cost = purchase price + all fees
-    const totalAcquisitionCost = purchasePrice * (1 + transferTaxRate + notaryRate + maklerFeePercent);
+    const totalAcquisitionCost = purchasePrice * (1 + transferTaxRate + notaryRate + grundbuchRate + maklerFeePercent);
     
     // Building value = building share of total acquisition cost
     const buildingValueForAfa = totalAcquisitionCost * (1 - landValuePercent);
@@ -219,6 +223,7 @@ export class CalculationService {
       maklerFeePercent,
       transferTaxRate,
       notaryRate,
+      grundbuchRate,
       totalAcquisitionCost,
       buildingValueForAfa,
       afaType,
@@ -437,7 +442,10 @@ export class CalculationService {
     
     // Total tax savings from depreciation
     const taxRate = property.taxProfile 
-      ? this.calculateMarginalTaxRate(this.toNumber(property.taxProfile.annualGrossIncome))
+      ? this.calculateMarginalTaxRate(
+          this.toNumber(property.taxProfile.annualGrossIncome),
+          property.taxProfile.taxFilingType
+        )
       : 0.42;
     const totalTaxSavingsFromAfa = cashflows.reduce((sum, cf) => {
       return sum + (cf.taxRefund > 0 ? cf.depreciationAmount * taxRate : 0);
@@ -619,15 +627,32 @@ export class CalculationService {
 
   /**
    * Calculate German marginal income tax rate based on annual gross income
-   * Simplified 2024 German tax brackets
+   * Uses 2024 German tax brackets with Ehegattensplitting for joint filing
    */
-  private calculateMarginalTaxRate(annualGrossIncome: number): number {
-    // German tax brackets 2024 (simplified)
-    if (annualGrossIncome <= 11604) return 0;
-    if (annualGrossIncome <= 17005) return 0.14;
-    if (annualGrossIncome <= 66760) return 0.24 + (annualGrossIncome - 17005) / (66760 - 17005) * 0.18;
-    if (annualGrossIncome <= 277825) return 0.42;
-    return 0.45;
+  private calculateMarginalTaxRate(annualGrossIncome: number, taxFilingType: string = 'SINGLE'): number {
+    // For joint filing (Ehegattensplitting), halve the income for bracket calculation
+    const incomeForBracket = taxFilingType === 'JOINT' ? annualGrossIncome / 2 : annualGrossIncome;
+    
+    // German tax brackets 2024
+    // Zone 1: 0 - 11,604€ = 0%
+    // Zone 2: 11,605 - 17,005€ = 14% - 24% (progressive)
+    // Zone 3: 17,006 - 66,760€ = 24% - 42% (progressive)
+    // Zone 4: 66,761 - 277,825€ = 42%
+    // Zone 5: > 277,825€ = 45% (Reichensteuer)
+    
+    if (incomeForBracket <= 11604) return 0;
+    if (incomeForBracket <= 17005) {
+      // Progressive zone 2: starts at 14%, increases to ~24%
+      const y = (incomeForBracket - 11604) / 10000;
+      return 0.14 + y * 0.10; // Simplified linear interpolation
+    }
+    if (incomeForBracket <= 66760) {
+      // Progressive zone 3: 24% to 42%
+      const progress = (incomeForBracket - 17005) / (66760 - 17005);
+      return 0.24 + progress * 0.18;
+    }
+    if (incomeForBracket <= 277825) return 0.42;
+    return 0.45; // Reichensteuer
   }
 
   /**

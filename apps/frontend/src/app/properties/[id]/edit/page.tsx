@@ -57,8 +57,9 @@ export default function EditPropertyPage() {
     );
   }
 
-  // Get investment assumptions if they exist
+  // Get investment assumptions and tax profile if they exist
   const investmentAssumptions = property.investmentAssumptions;
+  const taxProfile = property.taxProfile;
 
   // Convert property data to form format (decimals to percentages)
   const initialData = {
@@ -83,6 +84,9 @@ export default function EditPropertyPage() {
       ? String((parseFloat(String(investmentAssumptions.sonderAfaPercent)) * 100).toFixed(1)) 
       : '0',
     sonderAfaYears: String(investmentAssumptions?.sonderAfaYears || '0'),
+    // Tax profile
+    annualGrossIncome: taxProfile?.annualGrossIncome ? String(taxProfile.annualGrossIncome) : '',
+    taxFilingType: taxProfile?.taxFilingType || 'SINGLE',
   };
 
   return (

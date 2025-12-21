@@ -8,13 +8,15 @@ export class PropertyService {
   constructor(private prisma: PrismaService) {}
 
   async create(dto: CreatePropertyDto) {
-    // Extract investment assumptions fields
+    // Extract investment assumptions and tax profile fields
     const { 
       afaType, 
       customAfaRate,
       sonderAfaEligible, 
       sonderAfaPercent, 
       sonderAfaYears,
+      annualGrossIncome,
+      taxFilingType,
       ...propertyData 
     } = dto as CreatePropertyDto & {
       afaType?: string;
@@ -22,6 +24,8 @@ export class PropertyService {
       sonderAfaEligible?: boolean;
       sonderAfaPercent?: number;
       sonderAfaYears?: number;
+      annualGrossIncome?: number;
+      taxFilingType?: string;
     };
 
     const property = await this.prisma.property.create({
@@ -44,12 +48,21 @@ export class PropertyService {
           sonderAfaYears: sonderAfaYears || 0,
         },
       });
-
-      // Re-fetch with investment assumptions
-      return this.findOne(property.id);
     }
 
-    return property;
+    // Create tax profile if income provided
+    if (annualGrossIncome) {
+      await this.prisma.taxProfile.create({
+        data: {
+          propertyId: property.id,
+          annualGrossIncome: annualGrossIncome,
+          taxFilingType: (taxFilingType as any) || 'SINGLE',
+        },
+      });
+    }
+
+    // Re-fetch with all relations
+    return this.findOne(property.id);
   }
 
   async findAll(query: PropertyQueryDto) {
@@ -113,13 +126,15 @@ export class PropertyService {
   async update(id: string, dto: UpdatePropertyDto) {
     const existingProperty = await this.findOne(id); // Throws if not found
 
-    // Extract investment assumptions fields
+    // Extract investment assumptions and tax profile fields
     const { 
       afaType, 
       customAfaRate,
       sonderAfaEligible, 
       sonderAfaPercent, 
       sonderAfaYears,
+      annualGrossIncome,
+      taxFilingType,
       ...propertyData 
     } = dto as UpdatePropertyDto & {
       afaType?: string;
@@ -127,6 +142,8 @@ export class PropertyService {
       sonderAfaEligible?: boolean;
       sonderAfaPercent?: number;
       sonderAfaYears?: number;
+      annualGrossIncome?: number;
+      taxFilingType?: string;
     };
 
     // Update property
@@ -154,6 +171,28 @@ export class PropertyService {
           data: {
             propertyId: id,
             ...investmentData,
+          },
+        });
+      }
+    }
+
+    // Update or create tax profile if income provided
+    if (annualGrossIncome !== undefined) {
+      const taxData = {
+        annualGrossIncome: annualGrossIncome || 0,
+        taxFilingType: (taxFilingType as any) || 'SINGLE',
+      };
+
+      if (existingProperty.taxProfile) {
+        await this.prisma.taxProfile.update({
+          where: { propertyId: id },
+          data: taxData,
+        });
+      } else if (annualGrossIncome) {
+        await this.prisma.taxProfile.create({
+          data: {
+            propertyId: id,
+            ...taxData,
           },
         });
       }
