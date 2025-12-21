@@ -260,14 +260,14 @@ export default function PropertyDetailPage() {
       {/* Quick Metrics */}
       <QuickMetrics property={property} />
 
+      {/* Scenario Analysis (includes depreciation table) */}
+      <ScenarioAnalysisSection propertyId={id} />
+
       {/* Financing Scenarios */}
       <FinancingScenarios
         propertyId={id}
         purchasePrice={parseFloat(property.purchasePrice)}
       />
-
-      {/* Scenario Analysis */}
-      <ScenarioAnalysisSection propertyId={id} />
     </div>
   );
 }

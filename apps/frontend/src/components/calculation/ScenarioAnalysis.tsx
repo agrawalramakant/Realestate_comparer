@@ -27,6 +27,11 @@ export function ScenarioAnalysis({ propertyId, scenarios }: ScenarioAnalysisProp
 
   return (
     <div className="space-y-6">
+      {/* Depreciation & Tax Savings Table - Independent of financing */}
+      {calculationResult && calculationResult.yearlyCashflows && (
+        <DepreciationTable cashflows={calculationResult.yearlyCashflows} />
+      )}
+
       {/* Scenario Tabs */}
       <Tabs value={selectedScenarioId} onValueChange={setSelectedScenarioId}>
         <TabsList>
@@ -45,11 +50,6 @@ export function ScenarioAnalysis({ propertyId, scenarios }: ScenarioAnalysisProp
               scenarioId={scenario.id}
               scenarioName={scenario.scenarioName}
             />
-
-            {/* Depreciation & Tax Savings Table */}
-            {calculationResult && calculationResult.yearlyCashflows && (
-              <DepreciationTable cashflows={calculationResult.yearlyCashflows} />
-            )}
 
             {/* Cashflow Table */}
             {calculationResult && calculationResult.yearlyCashflows && (
