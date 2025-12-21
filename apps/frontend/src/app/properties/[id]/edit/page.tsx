@@ -57,6 +57,9 @@ export default function EditPropertyPage() {
     );
   }
 
+  // Get investment assumptions if they exist
+  const investmentAssumptions = property.investmentAssumptions;
+
   // Convert property data to form format (decimals to percentages)
   const initialData = {
     ...property,
@@ -73,6 +76,13 @@ export default function EditPropertyPage() {
     parkingRentalIncome: String(property.parkingRentalIncome || '0'),
     parkingPrice: String(property.parkingPrice || '0'),
     rentIncrementFrequencyYears: String(property.rentIncrementFrequencyYears || '1'),
+    // AfA settings from investment assumptions
+    afaType: investmentAssumptions?.afaType || 'LINEAR_2',
+    sonderAfaEligible: investmentAssumptions?.sonderAfaEligible || false,
+    sonderAfaPercent: investmentAssumptions?.sonderAfaPercent 
+      ? String((parseFloat(String(investmentAssumptions.sonderAfaPercent)) * 100).toFixed(1)) 
+      : '0',
+    sonderAfaYears: String(investmentAssumptions?.sonderAfaYears || '0'),
   };
 
   return (

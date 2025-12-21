@@ -111,17 +111,55 @@ export class PropertyService {
   }
 
   async update(id: string, dto: UpdatePropertyDto) {
-    await this.findOne(id); // Throws if not found
+    const existingProperty = await this.findOne(id); // Throws if not found
 
-    return this.prisma.property.update({
+    // Extract investment assumptions fields
+    const { 
+      afaType, 
+      customAfaRate,
+      sonderAfaEligible, 
+      sonderAfaPercent, 
+      sonderAfaYears,
+      ...propertyData 
+    } = dto as UpdatePropertyDto & {
+      afaType?: string;
+      customAfaRate?: number;
+      sonderAfaEligible?: boolean;
+      sonderAfaPercent?: number;
+      sonderAfaYears?: number;
+    };
+
+    // Update property
+    await this.prisma.property.update({
       where: { id },
-      data: dto as Prisma.PropertyUpdateInput,
-      include: {
-        financingScenarios: { orderBy: { scenarioOrder: 'asc' } },
-        taxProfile: true,
-        investmentAssumptions: true,
-      },
+      data: propertyData as Prisma.PropertyUpdateInput,
     });
+
+    // Update or create investment assumptions if AfA settings provided
+    if (afaType !== undefined || sonderAfaEligible !== undefined) {
+      const investmentData = {
+        afaType: afaType as any || 'LINEAR_2',
+        sonderAfaEligible: sonderAfaEligible || false,
+        sonderAfaPercent: sonderAfaPercent || 0,
+        sonderAfaYears: sonderAfaYears || 0,
+      };
+
+      if (existingProperty.investmentAssumptions) {
+        await this.prisma.investmentAssumptions.update({
+          where: { propertyId: id },
+          data: investmentData,
+        });
+      } else {
+        await this.prisma.investmentAssumptions.create({
+          data: {
+            propertyId: id,
+            ...investmentData,
+          },
+        });
+      }
+    }
+
+    return this.findOne(id);
   }
 
   async remove(id: string) {

@@ -1,6 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
+export interface InvestmentAssumptions {
+  id: string;
+  propertyId: string;
+  afaType: string;
+  sonderAfaEligible: boolean;
+  sonderAfaPercent: string;
+  sonderAfaYears: number;
+  denkmalschutzEligible: boolean;
+  denkmalschutzOldValue: string;
+  denkmalschutzRenovationCost: string;
+}
+
 export interface Property {
   id: string;
   name: string;
@@ -20,6 +32,7 @@ export interface Property {
   maklerFeePercent: string;
   createdAt: string;
   updatedAt: string;
+  investmentAssumptions?: InvestmentAssumptions | null;
   // Allow additional fields from API
   [key: string]: unknown;
 }

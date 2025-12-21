@@ -194,10 +194,67 @@ export class CalculationService {
     const taxRate = property.taxProfile 
       ? this.calculateMarginalTaxRate(this.toNumber(property.taxProfile.annualGrossIncome))
       : 0.42;
+    
+    // Calculate AfA base: building share of total acquisition cost (including fees)
     const landValuePercent = this.toNumber(property.landValuePercent);
-    const buildingValue = purchasePrice * (1 - landValuePercent);
-    const afaRate = property.constructionYear && property.constructionYear < 1925 ? 0.025 : 0.02;
-    const annualDepreciation = buildingValue * afaRate;
+    const maklerFeePercent = this.toNumber(property.maklerFeePercent);
+    const state = property.state;
+    const transferTaxRate = this.getTransferTaxRate(state);
+    const notaryRate = 0.015; // ~1.5% for notary and registration
+    
+    // Total acquisition cost = purchase price + all fees
+    const totalAcquisitionCost = purchasePrice * (1 + transferTaxRate + notaryRate + maklerFeePercent);
+    
+    // Building value = building share of total acquisition cost
+    const buildingValueForAfa = totalAcquisitionCost * (1 - landValuePercent);
+    
+    // Determine AfA type and rate based on investment assumptions
+    const afaType = property.investmentAssumptions?.afaType || 'LINEAR_2';
+    const isDegressive = afaType === 'DEGRESSIVE_5';
+    
+    // Debug logging
+    console.log('AfA Calculation:', {
+      purchasePrice,
+      landValuePercent,
+      maklerFeePercent,
+      transferTaxRate,
+      notaryRate,
+      totalAcquisitionCost,
+      buildingValueForAfa,
+      afaType,
+      isDegressive,
+      hasInvestmentAssumptions: !!property.investmentAssumptions,
+      expectedYear1Afa: isDegressive ? buildingValueForAfa * 0.05 : buildingValueForAfa * 0.02,
+    });
+    
+    let linearAfaRate: number;
+    switch (afaType) {
+      case 'LINEAR_2':
+        linearAfaRate = 0.02;
+        break;
+      case 'LINEAR_2_5':
+        linearAfaRate = 0.025;
+        break;
+      case 'LINEAR_3':
+        linearAfaRate = 0.03;
+        break;
+      case 'LINEAR_4':
+        linearAfaRate = 0.04;
+        break;
+      case 'DEGRESSIVE_5':
+        linearAfaRate = 0.05; // Initial rate for degressive
+        break;
+      case 'CUSTOM':
+        // For custom, we would need a custom rate field - default to 2% for now
+        linearAfaRate = 0.02;
+        break;
+      default:
+        // Fallback based on construction year
+        linearAfaRate = property.constructionYear && property.constructionYear < 1925 ? 0.025 : 0.02;
+    }
+    
+    // For degressive AfA, track remaining book value
+    let remainingBookValue = buildingValueForAfa;
     
     // Track loan balances
     let remainingBankLoan = bankLoanAmount;
@@ -260,7 +317,22 @@ export class CalculationService {
       const totalExpenses = mortgagePayment + kfwPayment + hausgeldNichtUmlagefaehig + otherCosts;
       
       // Depreciation calculation
-      const normalDepreciation = annualDepreciation;
+      let normalDepreciation: number;
+      
+      if (isDegressive) {
+        // Degressive AfA: 5% of remaining book value each year
+        normalDepreciation = remainingBookValue * linearAfaRate;
+        remainingBookValue -= normalDepreciation;
+        
+        // Ensure we don't depreciate below zero
+        if (remainingBookValue < 0) {
+          normalDepreciation += remainingBookValue; // Adjust last depreciation
+          remainingBookValue = 0;
+        }
+      } else {
+        // Linear AfA: fixed percentage of original building value
+        normalDepreciation = buildingValueForAfa * linearAfaRate;
+      }
       
       // Special depreciation (Sonder-AfA) - from investment assumptions if available
       let specialDepreciation = 0;
@@ -268,7 +340,8 @@ export class CalculationService {
         const sonderAfaPercent = this.toNumber(property.investmentAssumptions.sonderAfaPercent);
         const sonderAfaYears = property.investmentAssumptions.sonderAfaYears || 4;
         if (year <= sonderAfaYears && sonderAfaPercent > 0) {
-          specialDepreciation = buildingValue * sonderAfaPercent;
+          // Sonder-AfA is also based on building value including acquisition costs
+          specialDepreciation = buildingValueForAfa * sonderAfaPercent;
         }
       }
       
@@ -555,6 +628,31 @@ export class CalculationService {
     if (annualGrossIncome <= 66760) return 0.24 + (annualGrossIncome - 17005) / (66760 - 17005) * 0.18;
     if (annualGrossIncome <= 277825) return 0.42;
     return 0.45;
+  }
+
+  /**
+   * Get Grunderwerbsteuer (property transfer tax) rate by German state
+   */
+  private getTransferTaxRate(state: string): number {
+    const rates: Record<string, number> = {
+      BADEN_WUERTTEMBERG: 0.05,
+      BAYERN: 0.035,
+      BERLIN: 0.06,
+      BRANDENBURG: 0.065,
+      BREMEN: 0.05,
+      HAMBURG: 0.055,
+      HESSEN: 0.06,
+      MECKLENBURG_VORPOMMERN: 0.06,
+      NIEDERSACHSEN: 0.05,
+      NORDRHEIN_WESTFALEN: 0.065,
+      RHEINLAND_PFALZ: 0.05,
+      SAARLAND: 0.065,
+      SACHSEN: 0.055,
+      SACHSEN_ANHALT: 0.05,
+      SCHLESWIG_HOLSTEIN: 0.065,
+      THUERINGEN: 0.065,
+    };
+    return rates[state] || 0.05; // Default to 5%
   }
 
   /**

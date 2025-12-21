@@ -30,6 +30,34 @@ function formatCurrency(value: string | number): string {
   }).format(num);
 }
 
+const AFA_TYPE_LABELS: Record<string, string> = {
+  LINEAR_2: 'Linear 2%',
+  LINEAR_2_5: 'Linear 2.5%',
+  LINEAR_3: 'Linear 3%',
+  LINEAR_4: 'Linear 4%',
+  DEGRESSIVE_5: 'Degressive 5%',
+  CUSTOM: 'Custom Rate',
+};
+
+const AFA_RATES: Record<string, string> = {
+  LINEAR_2: '2.0%',
+  LINEAR_2_5: '2.5%',
+  LINEAR_3: '3.0%',
+  LINEAR_4: '4.0%',
+  DEGRESSIVE_5: '5.0%',
+  CUSTOM: 'Custom',
+};
+
+function formatAfaType(afaType: string | undefined): string {
+  if (!afaType) return 'Linear 2% (default)';
+  return AFA_TYPE_LABELS[afaType] || afaType;
+}
+
+function getAfaRate(afaType: string | undefined): string {
+  if (!afaType) return '2.0%';
+  return AFA_RATES[afaType] || '2.0%';
+}
+
 export default function PropertyDetailPage() {
   const params = useParams();
   const id = params.id as string;
@@ -192,6 +220,39 @@ export default function PropertyDetailPage() {
                 <DetailItem label="Parking in Price" value={property.parkingIncludedInPrice ? 'Yes' : 'No'} />
               </>
             ) : null}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Depreciation Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Depreciation Settings (AfA)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <DetailItem 
+              label="AfA Type" 
+              value={formatAfaType(property.investmentAssumptions?.afaType)} 
+            />
+            <DetailItem 
+              label="AfA Rate" 
+              value={getAfaRate(property.investmentAssumptions?.afaType)} 
+            />
+            {property.investmentAssumptions?.sonderAfaEligible ? (
+              <>
+                <DetailItem 
+                  label="Sonder-AfA" 
+                  value={`${(parseFloat(String(property.investmentAssumptions.sonderAfaPercent || 0)) * 100).toFixed(1)}%`} 
+                />
+                <DetailItem 
+                  label="Sonder-AfA Years" 
+                  value={`${property.investmentAssumptions.sonderAfaYears || 0} years`} 
+                />
+              </>
+            ) : (
+              <DetailItem label="Sonder-AfA" value="Not eligible" />
+            )}
           </div>
         </CardContent>
       </Card>

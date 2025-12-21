@@ -121,11 +121,6 @@ export function PropertyForm({ initialData, onSubmit, isLoading }: PropertyFormP
     // Remove fields that don't belong in the API payload
     const { 
       landValueAbsolute, 
-      afaType, 
-      customAfaRate, 
-      sonderAfaEligible, 
-      sonderAfaPercent, 
-      sonderAfaYears,
       // Remove read-only fields that come from initialData during edit
       id,
       createdAt,
@@ -157,17 +152,13 @@ export function PropertyForm({ initialData, onSubmit, isLoading }: PropertyFormP
       maklerFeePercent: (parseFloat(data.maklerFeePercent as string) || 0) / 100,
       hausgeldTotal: parseFloat(data.hausgeldTotal as string) || 0,
       hausgeldNichtUmlagefaehig: parseFloat(data.hausgeldNichtUmlagefaehig as string) || 0,
+      // Include AfA settings for InvestmentAssumptions
+      afaType: data.afaType as string,
+      customAfaRate: data.customAfaRate ? (parseFloat(data.customAfaRate as string) || 0) / 100 : undefined,
+      sonderAfaEligible: data.sonderAfaEligible as boolean,
+      sonderAfaPercent: data.sonderAfaPercent ? (parseFloat(data.sonderAfaPercent as string) || 0) / 100 : 0,
+      sonderAfaYears: data.sonderAfaYears ? parseInt(data.sonderAfaYears as string) : 0,
     };
-    
-    // Store AfA settings for later use with InvestmentAssumptions
-    // TODO: Create InvestmentAssumptions after property is created
-    console.log('AfA settings (to be saved separately):', { 
-      afaType, 
-      customAfaRate, 
-      sonderAfaEligible, 
-      sonderAfaPercent, 
-      sonderAfaYears 
-    });
     
     onSubmit(processed);
   };

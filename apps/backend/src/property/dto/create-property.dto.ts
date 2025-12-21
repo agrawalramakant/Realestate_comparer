@@ -18,6 +18,7 @@ import {
   ParkingType,
   BuildingType,
   SourceType,
+  AfaType,
 } from '@prisma/client';
 
 export class CreatePropertyDto {
@@ -283,4 +284,34 @@ export class CreatePropertyDto {
   @IsOptional()
   @IsString()
   visitDate?: string;
+
+  // ─────────────────────────────────────────
+  // Investment Assumptions (AfA Settings)
+  // These are stored in InvestmentAssumptions, not Property
+  // ─────────────────────────────────────────
+  @IsOptional()
+  @IsEnum(AfaType)
+  afaType?: AfaType;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  customAfaRate?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  sonderAfaEligible?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  sonderAfaPercent?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(10)
+  sonderAfaYears?: number;
 }
