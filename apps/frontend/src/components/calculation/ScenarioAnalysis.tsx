@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CalculationKPIs } from './CalculationKPIs';
 import { CashflowTable } from './CashflowTable';
+import { DepreciationTable } from './DepreciationTable';
 import { useCalculationResult } from '@/lib/hooks/use-calculation';
 import { FinancingScenario } from '@/lib/hooks/use-financing';
 
@@ -44,6 +45,11 @@ export function ScenarioAnalysis({ propertyId, scenarios }: ScenarioAnalysisProp
               scenarioId={scenario.id}
               scenarioName={scenario.scenarioName}
             />
+
+            {/* Depreciation & Tax Savings Table */}
+            {calculationResult && calculationResult.yearlyCashflows && (
+              <DepreciationTable cashflows={calculationResult.yearlyCashflows} />
+            )}
 
             {/* Cashflow Table */}
             {calculationResult && calculationResult.yearlyCashflows && (

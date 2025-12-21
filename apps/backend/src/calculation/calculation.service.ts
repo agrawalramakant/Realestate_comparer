@@ -44,7 +44,11 @@ interface YearlyCashflowData {
   hausgeldNichtUmlagefaehig: number;
   otherCosts: number;
   totalExpenses: number;
+  normalDepreciation: number;
+  specialDepreciation: number;
   depreciationAmount: number;
+  marginalTaxRate: number;
+  taxSavingOnDepreciation: number;
   taxableIncome: number;
   taxRefund: number;
   netCashflowBeforeTax: number;
@@ -255,8 +259,23 @@ export class CalculationService {
       
       const totalExpenses = mortgagePayment + kfwPayment + hausgeldNichtUmlagefaehig + otherCosts;
       
+      // Depreciation calculation
+      const normalDepreciation = annualDepreciation;
+      
+      // Special depreciation (Sonder-AfA) - from investment assumptions if available
+      let specialDepreciation = 0;
+      if (property.investmentAssumptions?.sonderAfaEligible) {
+        const sonderAfaPercent = this.toNumber(property.investmentAssumptions.sonderAfaPercent);
+        const sonderAfaYears = property.investmentAssumptions.sonderAfaYears || 4;
+        if (year <= sonderAfaYears && sonderAfaPercent > 0) {
+          specialDepreciation = buildingValue * sonderAfaPercent;
+        }
+      }
+      
+      const depreciationAmount = normalDepreciation + specialDepreciation;
+      const taxSavingOnDepreciation = depreciationAmount * taxRate;
+      
       // Tax calculation
-      const depreciationAmount = annualDepreciation;
       const deductibleInterest = totalInterest;
       const taxableIncome = totalIncome - hausgeldNichtUmlagefaehig - deductibleInterest - depreciationAmount;
       const taxRefund = taxableIncome < 0 ? Math.abs(taxableIncome) * taxRate : 0;
@@ -283,7 +302,11 @@ export class CalculationService {
         hausgeldNichtUmlagefaehig,
         otherCosts,
         totalExpenses,
+        normalDepreciation,
+        specialDepreciation,
         depreciationAmount,
+        marginalTaxRate: taxRate,
+        taxSavingOnDepreciation,
         taxableIncome,
         taxRefund: taxRefund - taxPayment,
         netCashflowBeforeTax,
@@ -431,7 +454,11 @@ export class CalculationService {
             hausgeldNichtUmlagefaehig: cf.hausgeldNichtUmlagefaehig,
             otherCosts: cf.otherCosts,
             totalExpenses: cf.totalExpenses,
+            normalDepreciation: cf.normalDepreciation,
+            specialDepreciation: cf.specialDepreciation,
             depreciationAmount: cf.depreciationAmount,
+            marginalTaxRate: cf.marginalTaxRate,
+            taxSavingOnDepreciation: cf.taxSavingOnDepreciation,
             taxableIncome: cf.taxableIncome,
             taxRefund: cf.taxRefund,
             netCashflowBeforeTax: cf.netCashflowBeforeTax,

@@ -16,7 +16,11 @@ export interface YearlyCashflow {
   hausgeldNichtUmlagefaehig: string;
   otherCosts: string;
   totalExpenses: string;
+  normalDepreciation: string;
+  specialDepreciation: string;
   depreciationAmount: string;
+  marginalTaxRate: string;
+  taxSavingOnDepreciation: string;
   taxableIncome: string;
   taxRefund: string;
   netCashflowBeforeTax: string;

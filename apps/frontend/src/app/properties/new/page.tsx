@@ -13,10 +13,14 @@ export default function NewPropertyPage() {
 
   const handleSubmit = async (data: Record<string, unknown>) => {
     try {
+      console.log('Submitting property data:', data);
       const property = await createProperty.mutateAsync(data);
+      console.log('Property created:', property);
       router.push(`/properties/${property.id}`);
     } catch (error) {
       console.error('Failed to create property:', error);
+      // Show error to user
+      alert(`Failed to create property: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 

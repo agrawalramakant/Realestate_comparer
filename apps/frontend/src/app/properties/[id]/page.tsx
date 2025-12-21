@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { useProperty } from '@/lib/hooks/use-properties';
+import { useProperty, Property } from '@/lib/hooks/use-properties';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -147,14 +147,57 @@ export default function PropertyDetailPage() {
           <CardTitle>Property Details</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <DetailItem label="Rent per m²" value={`€${parseFloat(property.rentalPricePerM2).toFixed(2)}`} />
-            <DetailItem label="Land Value %" value={`${(parseFloat(property.landValuePercent as unknown as string) * 100).toFixed(0)}%`} />
-            <DetailItem label="Vacancy Rate" value={`${(parseFloat(property.vacancyRate as unknown as string) * 100).toFixed(1)}%`} />
-            <DetailItem label="Appreciation" value={`${(parseFloat(property.houseAppreciation as unknown as string) * 100).toFixed(1)}%`} />
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {property.address && <DetailItem label="Address" value={property.address} />}
+            <DetailItem label="Construction Year" value={property.constructionYear ? String(property.constructionYear) : 'N/A'} />
+            <DetailItem label="Number of Rooms" value={property.numberOfRooms ? String(property.numberOfRooms) : 'N/A'} />
+            <DetailItem label="Land Value" value={`${(parseFloat(property.landValuePercent as unknown as string) * 100).toFixed(0)}%`} />
           </div>
         </CardContent>
       </Card>
+
+      {/* Rental Details */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Rental Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <DetailItem label="Rent per m²" value={`€${parseFloat(property.rentalPricePerM2).toFixed(2)}/month`} />
+            <DetailItem label="Monthly Rent" value={formatCurrency(parseFloat(property.rentalPricePerM2) * parseFloat(property.propertySize))} />
+            <DetailItem label="Parking Income" value={property.parkingRentalIncome ? `€${parseFloat(String(property.parkingRentalIncome)).toFixed(0)}/month` : '€0'} />
+            <DetailItem label="Vacancy Rate" value={`${(parseFloat(property.vacancyRate as unknown as string) * 100).toFixed(1)}%`} />
+            <DetailItem label="Appreciation" value={`${(parseFloat(property.houseAppreciation as unknown as string) * 100).toFixed(1)}%/year`} />
+            <DetailItem label="Rent Increase" value={`${(parseFloat(property.rentIncrementPercent as unknown as string) * 100).toFixed(1)}%`} />
+            <DetailItem label="Increase Frequency" value={`Every ${property.rentIncrementFrequencyYears || 1} year(s)`} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Costs & Fees */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Costs & Fees</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <DetailItem label="Broker Fee" value={`${(parseFloat(property.maklerFeePercent as unknown as string) * 100).toFixed(2)}%`} />
+            {property.sourceName ? <DetailItem label="Broker Name" value={String(property.sourceName)} /> : null}
+            {property.sourceContact ? <DetailItem label="Broker Contact" value={String(property.sourceContact)} /> : null}
+            <DetailItem label="Total Hausgeld" value={`€${parseFloat(property.hausgeldTotal as unknown as string).toFixed(0)}/month`} />
+            <DetailItem label="Non-Recoverable Hausgeld" value={`€${parseFloat(property.hausgeldNichtUmlagefaehig as unknown as string).toFixed(0)}/month`} />
+            {property.hasParkingSpace ? (
+              <>
+                <DetailItem label="Parking Price" value={formatCurrency(parseFloat(String(property.parkingPrice || 0)))} />
+                <DetailItem label="Parking in Price" value={property.parkingIncludedInPrice ? 'Yes' : 'No'} />
+              </>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick Metrics */}
+      <QuickMetrics property={property} />
 
       {/* Financing Scenarios */}
       <FinancingScenarios
@@ -184,6 +227,91 @@ function DetailItem({ label, value }: { label: string; value: string }) {
       <dt className="text-sm text-muted-foreground">{label}</dt>
       <dd className="text-sm font-medium">{value}</dd>
     </div>
+  );
+}
+
+function QuickMetrics({ property }: { property: Property }) {
+  const purchasePrice = parseFloat(property.purchasePrice);
+  const propertySize = parseFloat(property.propertySize);
+  const rentPerM2 = parseFloat(property.rentalPricePerM2);
+  const parkingRentalIncome = parseFloat(String(property.parkingRentalIncome || 0));
+  const maklerFeePercent = parseFloat(property.maklerFeePercent);
+  
+  // Calculate metrics
+  const monthlyRent = (rentPerM2 * propertySize) + parkingRentalIncome;
+  const annualRent = monthlyRent * 12;
+  const bruttoRentalYield = (annualRent / purchasePrice) * 100;
+  
+  // Price per sqm (property only)
+  const pricePerSqm = purchasePrice / propertySize;
+  
+  // Calculate total purchase costs (price + notary ~1.5% + grunderwerbsteuer ~6% + broker)
+  // Using approximate values - actual calculation would need state-specific rates
+  const notaryFee = purchasePrice * 0.015;
+  const grunderwerbsteuer = purchasePrice * 0.06; // Approximate, varies by state
+  const brokerFee = purchasePrice * maklerFeePercent;
+  const totalPurchaseCost = purchasePrice + notaryFee + grunderwerbsteuer + brokerFee;
+  const totalCostPerSqm = totalPurchaseCost / propertySize;
+
+  return (
+    <Card className="border-primary/20 bg-primary/5">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          📊 Quick Metrics
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="text-center p-4 bg-background rounded-lg">
+            <div className="text-2xl font-bold text-primary">
+              {bruttoRentalYield.toFixed(2)}%
+            </div>
+            <div className="text-sm text-muted-foreground mt-1">
+              Brutto Rental Yield
+            </div>
+            <div className="text-xs text-muted-foreground">
+              (Annual Rent / Price)
+            </div>
+          </div>
+          
+          <div className="text-center p-4 bg-background rounded-lg">
+            <div className="text-2xl font-bold text-green-600">
+              {formatCurrency(monthlyRent)}
+            </div>
+            <div className="text-sm text-muted-foreground mt-1">
+              Rent per Month
+            </div>
+            <div className="text-xs text-muted-foreground">
+              (incl. parking: €{parkingRentalIncome.toFixed(0)})
+            </div>
+          </div>
+          
+          <div className="text-center p-4 bg-background rounded-lg">
+            <div className="text-2xl font-bold text-blue-600">
+              {formatCurrency(pricePerSqm)}/m²
+            </div>
+            <div className="text-sm text-muted-foreground mt-1">
+              Price per m²
+            </div>
+            <div className="text-xs text-muted-foreground">
+              (property only)
+            </div>
+          </div>
+          
+          <div className="text-center p-4 bg-background rounded-lg">
+            <div className="text-2xl font-bold text-orange-600">
+              {formatCurrency(totalCostPerSqm)}/m²
+            </div>
+            <div className="text-sm text-muted-foreground mt-1">
+              Total Cost per m²
+            </div>
+            <div className="text-xs text-muted-foreground">
+              (incl. taxes & fees)
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

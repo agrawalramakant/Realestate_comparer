@@ -400,9 +400,17 @@ model YearlyCashflowRow {
   totalExpenses             Decimal           @db.Decimal(12, 2)
   
   // ─────────────────────────────────────────
+  // Depreciation
+  // ─────────────────────────────────────────
+  normalDepreciation        Decimal           @default(0) @db.Decimal(12, 2)
+  specialDepreciation       Decimal           @default(0) @db.Decimal(12, 2)
+  depreciationAmount        Decimal           @db.Decimal(12, 2)  // Total (normal + special)
+  
+  // ─────────────────────────────────────────
   // Tax
   // ─────────────────────────────────────────
-  depreciationAmount        Decimal           @db.Decimal(12, 2)
+  marginalTaxRate           Decimal           @default(0.42) @db.Decimal(5, 4)
+  taxSavingOnDepreciation   Decimal           @default(0) @db.Decimal(12, 2)
   taxableIncome             Decimal           @db.Decimal(12, 2)
   taxRefund                 Decimal           @db.Decimal(10, 2)
   

@@ -8,14 +8,48 @@ export class PropertyService {
   constructor(private prisma: PrismaService) {}
 
   async create(dto: CreatePropertyDto) {
-    return this.prisma.property.create({
-      data: dto as Prisma.PropertyCreateInput,
+    // Extract investment assumptions fields
+    const { 
+      afaType, 
+      customAfaRate,
+      sonderAfaEligible, 
+      sonderAfaPercent, 
+      sonderAfaYears,
+      ...propertyData 
+    } = dto as CreatePropertyDto & {
+      afaType?: string;
+      customAfaRate?: number;
+      sonderAfaEligible?: boolean;
+      sonderAfaPercent?: number;
+      sonderAfaYears?: number;
+    };
+
+    const property = await this.prisma.property.create({
+      data: propertyData as Prisma.PropertyCreateInput,
       include: {
         financingScenarios: true,
         taxProfile: true,
         investmentAssumptions: true,
       },
     });
+
+    // Create investment assumptions if AfA settings provided
+    if (afaType || sonderAfaEligible) {
+      await this.prisma.investmentAssumptions.create({
+        data: {
+          propertyId: property.id,
+          afaType: afaType as any || 'LINEAR_2',
+          sonderAfaEligible: sonderAfaEligible || false,
+          sonderAfaPercent: sonderAfaPercent || 0,
+          sonderAfaYears: sonderAfaYears || 0,
+        },
+      });
+
+      // Re-fetch with investment assumptions
+      return this.findOne(property.id);
+    }
+
+    return property;
   }
 
   async findAll(query: PropertyQueryDto) {
