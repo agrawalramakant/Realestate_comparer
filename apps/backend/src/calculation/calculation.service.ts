@@ -268,6 +268,9 @@ export class CalculationService {
     let currentRentPerM2 = rentalPricePerM2;
     let propertyValue = purchasePrice;
     
+    // Track previous year's tax refund (received in current year)
+    let previousYearTaxRefund = 0;
+    
     for (let year = 1; year <= 30; year++) {
       const calendarYear = currentYear + year;
       
@@ -353,16 +356,22 @@ export class CalculationService {
       const depreciationAmount = normalDepreciation + specialDepreciation;
       const taxSavingOnDepreciation = depreciationAmount * taxRate;
       
-      // Tax calculation
+      // Tax calculation for THIS year (will be received NEXT year)
       const deductibleInterest = totalInterest;
       const taxableIncome = totalIncome - hausgeldNichtUmlagefaehig - deductibleInterest - depreciationAmount;
-      const taxRefund = taxableIncome < 0 ? Math.abs(taxableIncome) * taxRate : 0;
-      const taxPayment = taxableIncome > 0 ? taxableIncome * taxRate : 0;
+      const calculatedTaxRefund = taxableIncome < 0 ? Math.abs(taxableIncome) * taxRate : 0;
+      const calculatedTaxPayment = taxableIncome > 0 ? taxableIncome * taxRate : 0;
+      
+      // Tax refund RECEIVED this year (from previous year's calculation)
+      const taxRefundReceived = previousYearTaxRefund;
       
       // Cashflow
       const netCashflowBeforeTax = totalIncome - totalExpenses;
-      const netCashflowAfterTax = netCashflowBeforeTax + taxRefund - taxPayment;
+      const netCashflowAfterTax = netCashflowBeforeTax + taxRefundReceived - calculatedTaxPayment;
       cumulativeCashflow += netCashflowAfterTax;
+      
+      // Store this year's calculated refund for next year
+      previousYearTaxRefund = calculatedTaxRefund - calculatedTaxPayment;
       
       // Equity
       const equity = propertyValue - remainingBankLoan - remainingKfwLoan;
@@ -386,7 +395,7 @@ export class CalculationService {
         marginalTaxRate: taxRate,
         taxSavingOnDepreciation,
         taxableIncome,
-        taxRefund: taxRefund - taxPayment,
+        taxRefund: taxRefundReceived,
         netCashflowBeforeTax,
         netCashflowAfterTax,
         cumulativeCashflow,

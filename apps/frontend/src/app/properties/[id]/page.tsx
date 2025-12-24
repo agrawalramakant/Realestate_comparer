@@ -260,26 +260,23 @@ export default function PropertyDetailPage() {
       {/* Quick Metrics */}
       <QuickMetrics property={property} />
 
-      {/* Scenario Analysis (includes depreciation table) */}
-      <ScenarioAnalysisSection propertyId={id} />
-
-      {/* Financing Scenarios */}
-      <FinancingScenarios
-        propertyId={id}
+      {/* Scenario Analysis (includes depreciation table and financing scenarios) */}
+      <ScenarioAnalysisSection 
+        propertyId={id} 
         purchasePrice={parseFloat(property.purchasePrice)}
       />
     </div>
   );
 }
 
-function ScenarioAnalysisSection({ propertyId }: { propertyId: string }) {
+function ScenarioAnalysisSection({ propertyId, purchasePrice }: { propertyId: string; purchasePrice: number }) {
   const { data: scenarios, isLoading } = useFinancingScenarios(propertyId);
 
   if (isLoading || !scenarios || scenarios.length === 0) {
     return null;
   }
 
-  return <ScenarioAnalysis propertyId={propertyId} scenarios={scenarios} />;
+  return <ScenarioAnalysis propertyId={propertyId} scenarios={scenarios} purchasePrice={purchasePrice} />;
 }
 
 function DetailItem({ label, value }: { label: string; value: string }) {
