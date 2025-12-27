@@ -10,10 +10,11 @@ import { formatCurrency } from '@/lib/utils';
 
 interface TaxBreakdownTableProps {
   cashflows: YearlyCashflow[];
+  viewMode: 'monthly' | 'yearly';
+  setViewMode: (mode: 'monthly' | 'yearly') => void;
 }
 
-export function TaxBreakdownTable({ cashflows }: TaxBreakdownTableProps) {
-  const [viewMode, setViewMode] = useState<'monthly' | 'yearly'>('monthly');
+export function TaxBreakdownTable({ cashflows, viewMode, setViewMode }: TaxBreakdownTableProps) {
 
   if (!cashflows || cashflows.length === 0) {
     return null;

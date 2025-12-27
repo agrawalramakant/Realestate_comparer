@@ -238,16 +238,11 @@ export class CreatePropertyDto {
   @Max(5)
   rentIncrementFrequencyYears?: number;
 
-  // Hausgeld
+  // Hausgeld - Split into 3 components
   @IsOptional()
   @IsNumber()
   @Min(0)
   hausgeldTotal?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  hausgeldNichtUmlagefaehig?: number;
 
   @IsOptional()
   @IsNumber()
@@ -257,7 +252,12 @@ export class CreatePropertyDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
-  ruecklagePerSqm?: number;
+  hausgeldNichtUmlagefaehig?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  hausgeldRuecklage?: number;
 
   // Source
   @IsOptional()

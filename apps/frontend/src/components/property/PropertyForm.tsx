@@ -1,7 +1,7 @@
 'use client';
 
 import { useForm } from 'react-hook-form';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FormattedNumberInput } from '@/components/ui/formatted-input';
@@ -75,7 +75,9 @@ export function PropertyForm({ initialData, onSubmit, isLoading }: PropertyFormP
       sourceName: '', // Broker/Source name
       sourceContact: '', // Broker/Source contact
       hausgeldTotal: '0',
+      hausgeldUmlagefaehig: '0',
       hausgeldNichtUmlagefaehig: '0',
+      hausgeldRuecklage: '0',
       
       // Depreciation (AfA)
       afaType: 'LINEAR_2',
@@ -120,6 +122,20 @@ export function PropertyForm({ initialData, onSubmit, isLoading }: PropertyFormP
   const afaType = watch('afaType');
   const annualGrossIncome = watch('annualGrossIncome');
 
+  // Watch Hausgeld components for auto-calculation
+  const hausgeldUmlagefaehig = watch('hausgeldUmlagefaehig');
+  const hausgeldNichtUmlagefaehig = watch('hausgeldNichtUmlagefaehig');
+  const hausgeldRuecklage = watch('hausgeldRuecklage');
+
+  // Auto-calculate total Hausgeld when components change
+  useEffect(() => {
+    const umlagefaehig = parseFloat(hausgeldUmlagefaehig as string) || 0;
+    const nichtUmlagefaehig = parseFloat(hausgeldNichtUmlagefaehig as string) || 0;
+    const ruecklage = parseFloat(hausgeldRuecklage as string) || 0;
+    const total = umlagefaehig + nichtUmlagefaehig + ruecklage;
+    setValue('hausgeldTotal', String(total), { shouldValidate: false });
+  }, [hausgeldUmlagefaehig, hausgeldNichtUmlagefaehig, hausgeldRuecklage, setValue]);
+
   const onFormSubmit = (data: Record<string, unknown>) => {
     // Convert string numbers to actual numbers
     // Convert percentages (e.g., 20) to decimals (e.g., 0.2) for API
@@ -156,7 +172,9 @@ export function PropertyForm({ initialData, onSubmit, isLoading }: PropertyFormP
       parkingPrice: parseFloat(data.parkingPrice as string) || 0,
       maklerFeePercent: (parseFloat(data.maklerFeePercent as string) || 0) / 100,
       hausgeldTotal: parseFloat(data.hausgeldTotal as string) || 0,
+      hausgeldUmlagefaehig: parseFloat(data.hausgeldUmlagefaehig as string) || 0,
       hausgeldNichtUmlagefaehig: parseFloat(data.hausgeldNichtUmlagefaehig as string) || 0,
+      hausgeldRuecklage: parseFloat(data.hausgeldRuecklage as string) || 0,
       // Include AfA settings for InvestmentAssumptions
       afaType: data.afaType as string,
       customAfaRate: data.customAfaRate ? (parseFloat(data.customAfaRate as string) || 0) / 100 : undefined,
@@ -467,19 +485,20 @@ export function PropertyForm({ initialData, onSubmit, isLoading }: PropertyFormP
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="hausgeldTotal">Total Hausgeld (€/month)</Label>
+            <Label htmlFor="hausgeldUmlagefaehig">Recoverable Costs (€/month)</Label>
             <Input
-              id="hausgeldTotal"
+              id="hausgeldUmlagefaehig"
               type="number"
               step="1"
               min="0"
-              placeholder="e.g., 250"
-              {...register('hausgeldTotal')}
+              placeholder="e.g., 150"
+              {...register('hausgeldUmlagefaehig')}
             />
+            <p className="text-xs text-muted-foreground">Costs passed to tenant (heating, water, etc.)</p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="hausgeldNichtUmlagefaehig">Non-Recoverable Hausgeld (€/month)</Label>
+            <Label htmlFor="hausgeldNichtUmlagefaehig">Administrative Costs (€/month)</Label>
             <Input
               id="hausgeldNichtUmlagefaehig"
               type="number"
@@ -488,7 +507,35 @@ export function PropertyForm({ initialData, onSubmit, isLoading }: PropertyFormP
               placeholder="e.g., 100"
               {...register('hausgeldNichtUmlagefaehig')}
             />
-            <p className="text-xs text-muted-foreground">Portion not passed to tenant</p>
+            <p className="text-xs text-muted-foreground">Tax-deductible (management, insurance, etc.)</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="hausgeldRuecklage">Reserve Fund (€/month)</Label>
+            <Input
+              id="hausgeldRuecklage"
+              type="number"
+              step="1"
+              min="0"
+              placeholder="e.g., 100"
+              {...register('hausgeldRuecklage')}
+            />
+            <p className="text-xs text-muted-foreground">Non-deductible maintenance reserve</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="hausgeldTotal">Total Hausgeld (€/month)</Label>
+            <Input
+              id="hausgeldTotal"
+              type="number"
+              step="1"
+              min="0"
+              readOnly
+              disabled
+              className="bg-muted"
+              {...register('hausgeldTotal')}
+            />
+            <p className="text-xs text-muted-foreground">Auto-calculated from components above</p>
           </div>
 
           <div className="space-y-2 md:col-span-2 lg:col-span-3">

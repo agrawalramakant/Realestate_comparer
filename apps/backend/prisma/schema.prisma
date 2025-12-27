@@ -197,12 +197,12 @@ model Property {
   rentIncrementFrequencyYears Int              @default(1)
   
   // ─────────────────────────────────────────
-  // Hausgeld (Monthly)
+  // Hausgeld (Monthly) - Split into 3 components
   // ─────────────────────────────────────────
-  hausgeldTotal               Decimal          @default(0) @db.Decimal(8, 2)
-  hausgeldNichtUmlagefaehig   Decimal          @default(0) @db.Decimal(8, 2)
-  hausgeldUmlagefaehig        Decimal          @default(0) @db.Decimal(8, 2)
-  ruecklagePerSqm             Decimal          @default(0) @db.Decimal(6, 4)
+  hausgeldTotal               Decimal          @default(0) @db.Decimal(8, 2)  // Total for display only
+  hausgeldUmlagefaehig        Decimal          @default(0) @db.Decimal(8, 2)  // Recoverable costs (tenant-paid, not in cashflow)
+  hausgeldNichtUmlagefaehig   Decimal          @default(0) @db.Decimal(8, 2)  // Administrative costs (tax-deductible, in cashflow)
+  hausgeldRuecklage           Decimal          @default(0) @db.Decimal(8, 2)  // Reserve fund (non-deductible, in cashflow)
   
   // ─────────────────────────────────────────
   // Source / Acquisition
@@ -397,6 +397,7 @@ model YearlyCashflowRow {
   interestPortion           Decimal           @db.Decimal(12, 2)
   principalPortion          Decimal           @db.Decimal(12, 2)
   hausgeldNichtUmlagefaehig Decimal           @db.Decimal(10, 2)
+  hausgeldRuecklage         Decimal           @db.Decimal(10, 2)
   otherCosts                Decimal           @db.Decimal(10, 2)
   totalExpenses             Decimal           @db.Decimal(12, 2)
   

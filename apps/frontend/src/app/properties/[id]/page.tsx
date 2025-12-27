@@ -213,7 +213,9 @@ export default function PropertyDetailPage() {
             {property.sourceName ? <DetailItem label="Broker Name" value={String(property.sourceName)} /> : null}
             {property.sourceContact ? <DetailItem label="Broker Contact" value={String(property.sourceContact)} /> : null}
             <DetailItem label="Total Hausgeld" value={`€${parseFloat(property.hausgeldTotal as unknown as string).toFixed(0)}/month`} />
-            <DetailItem label="Non-Recoverable Hausgeld" value={`€${parseFloat(property.hausgeldNichtUmlagefaehig as unknown as string).toFixed(0)}/month`} />
+            <DetailItem label="Recoverable Costs" value={`€${parseFloat(property.hausgeldUmlagefaehig as unknown as string).toFixed(0)}/month`} />
+            <DetailItem label="Administrative Costs" value={`€${parseFloat(property.hausgeldNichtUmlagefaehig as unknown as string).toFixed(0)}/month`} />
+            <DetailItem label="Reserve Fund" value={`€${parseFloat(property.hausgeldRuecklage as unknown as string).toFixed(0)}/month`} />
             {property.hasParkingSpace ? (
               <>
                 <DetailItem label="Parking Price" value={formatCurrency(parseFloat(String(property.parkingPrice || 0)))} />
@@ -272,11 +274,12 @@ export default function PropertyDetailPage() {
 function ScenarioAnalysisSection({ propertyId, purchasePrice }: { propertyId: string; purchasePrice: number }) {
   const { data: scenarios, isLoading } = useFinancingScenarios(propertyId);
 
-  if (isLoading || !scenarios || scenarios.length === 0) {
+  if (isLoading) {
     return null;
   }
 
-  return <ScenarioAnalysis propertyId={propertyId} scenarios={scenarios} purchasePrice={purchasePrice} />;
+  // Always show ScenarioAnalysis - it contains FinancingScenarios component to add new scenarios
+  return <ScenarioAnalysis propertyId={propertyId} scenarios={scenarios || []} purchasePrice={purchasePrice} />;
 }
 
 function DetailItem({ label, value }: { label: string; value: string }) {

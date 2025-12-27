@@ -21,19 +21,29 @@ export function ScenarioAnalysis({ propertyId, scenarios, purchasePrice }: Scena
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>(
     scenarios[0]?.id || ''
   );
+  const [viewMode, setViewMode] = useState<'monthly' | 'yearly'>('monthly');
 
   const selectedScenario = scenarios.find(s => s.id === selectedScenarioId);
   const { data: calculationResult } = useCalculationResult(propertyId, selectedScenarioId);
 
+  // Always show FinancingScenarios so user can add scenarios even when none exist
   if (scenarios.length === 0) {
-    return null;
+    return (
+      <div className="space-y-6">
+        <FinancingScenarios propertyId={propertyId} purchasePrice={purchasePrice} />
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       {/* Depreciation & Tax Savings Table - Independent of financing */}
       {calculationResult && calculationResult.yearlyCashflows && (
-        <DepreciationTable cashflows={calculationResult.yearlyCashflows} />
+        <DepreciationTable 
+          cashflows={calculationResult.yearlyCashflows}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+        />
       )}
 
       {/* Financing Scenarios Management */}
@@ -60,17 +70,29 @@ export function ScenarioAnalysis({ propertyId, scenarios, purchasePrice }: Scena
 
             {/* Tax Breakdown Table */}
             {calculationResult && calculationResult.yearlyCashflows && (
-              <TaxBreakdownTable cashflows={calculationResult.yearlyCashflows} />
+              <TaxBreakdownTable 
+                cashflows={calculationResult.yearlyCashflows}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+              />
             )}
 
             {/* Monthly Cashflow Table */}
             {calculationResult && calculationResult.yearlyCashflows && (
-              <MonthlyCashflowTable cashflows={calculationResult.yearlyCashflows} />
+              <MonthlyCashflowTable 
+                cashflows={calculationResult.yearlyCashflows}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+              />
             )}
 
             {/* Yearly Cashflow Table */}
             {calculationResult && calculationResult.yearlyCashflows && (
-              <CashflowTable cashflows={calculationResult.yearlyCashflows} />
+              <CashflowTable 
+                cashflows={calculationResult.yearlyCashflows}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+              />
             )}
           </TabsContent>
         ))}

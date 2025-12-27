@@ -28,7 +28,9 @@ export interface Property {
   vacancyRate: string;
   rentIncrementPercent: string;
   hausgeldTotal: string;
+  hausgeldUmlagefaehig: string;
   hausgeldNichtUmlagefaehig: string;
+  hausgeldRuecklage: string;
   maklerFeePercent: string;
   createdAt: string;
   updatedAt: string;

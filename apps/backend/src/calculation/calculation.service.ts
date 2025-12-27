@@ -42,6 +42,7 @@ interface YearlyCashflowData {
   interestPortion: number;
   principalPortion: number;
   hausgeldNichtUmlagefaehig: number;
+  hausgeldRuecklage: number;
   otherCosts: number;
   totalExpenses: number;
   normalDepreciation: number;
@@ -177,7 +178,11 @@ export class CalculationService {
     const vacancyRate = this.toNumber(property.vacancyRate);
     const rentIncrementPercent = this.toNumber(property.rentIncrementPercent);
     const rentIncrementFrequencyYears = property.rentIncrementFrequencyYears || 1;
-    const hausgeldNichtUmlagefaehig = this.toNumber(property.hausgeldNichtUmlagefaehig) * 12;
+    
+    // Hausgeld components (stored as monthly values)
+    // Start with monthly values; they will grow at the same rate/frequency as rent
+    let hausgeldNichtUmlagefaehig = this.toNumber(property.hausgeldNichtUmlagefaehig); // Tax-deductible
+    let hausgeldRuecklage = this.toNumber(property.hausgeldRuecklage); // Non-deductible reserve
     
     // Loan values
     const ltvPercent = this.toNumber(scenario.ltvPercent);
@@ -276,7 +281,10 @@ export class CalculationService {
       
       // Rent increment
       if (year > 1 && (year - 1) % rentIncrementFrequencyYears === 0) {
-        currentRentPerM2 *= (1 + rentIncrementPercent);
+        const growthFactor = (1 + rentIncrementPercent);
+        currentRentPerM2 *= growthFactor;
+        hausgeldNichtUmlagefaehig *= growthFactor;
+        hausgeldRuecklage *= growthFactor;
       }
       
       // Property appreciation
@@ -322,7 +330,8 @@ export class CalculationService {
       // Other costs (maintenance, insurance, etc.)
       const otherCosts = 0; // Can be expanded
       
-      const totalExpenses = mortgagePayment + kfwPayment + hausgeldNichtUmlagefaehig + otherCosts;
+      // Total expenses includes both tax-deductible and non-deductible Hausgeld (convert monthly to annual)
+      const totalExpenses = mortgagePayment + kfwPayment + (hausgeldNichtUmlagefaehig * 12) + (hausgeldRuecklage * 12) + otherCosts;
       
       // Depreciation calculation
       let normalDepreciation: number;
@@ -358,7 +367,8 @@ export class CalculationService {
       
       // Tax calculation for THIS year (will be received NEXT year)
       const deductibleInterest = totalInterest;
-      const taxableIncome = totalIncome - hausgeldNichtUmlagefaehig - deductibleInterest - depreciationAmount;
+      // Only hausgeldNichtUmlagefaehig is tax-deductible, NOT hausgeldRuecklage (convert monthly to annual)
+      const taxableIncome = totalIncome - (hausgeldNichtUmlagefaehig * 12) - deductibleInterest - depreciationAmount;
       const calculatedTaxRefund = taxableIncome < 0 ? Math.abs(taxableIncome) * taxRate : 0;
       const calculatedTaxPayment = taxableIncome > 0 ? taxableIncome * taxRate : 0;
       
@@ -386,7 +396,8 @@ export class CalculationService {
         kfwPayment,
         interestPortion: totalInterest,
         principalPortion: totalPrincipal,
-        hausgeldNichtUmlagefaehig,
+        hausgeldNichtUmlagefaehig: hausgeldNichtUmlagefaehig * 12, // Convert monthly to annual for consistency
+        hausgeldRuecklage: hausgeldRuecklage * 12, // Reserve fund (non-deductible) - monthly to annual
         otherCosts,
         totalExpenses,
         normalDepreciation,
@@ -428,8 +439,9 @@ export class CalculationService {
     const grossYield = annualRent / purchasePrice;
     
     // Net yield (after non-recoverable costs)
-    const hausgeldNichtUmlagefaehig = this.toNumber(property.hausgeldNichtUmlagefaehig) * 12;
-    const netRent = annualRent - hausgeldNichtUmlagefaehig;
+    const hausgeldNichtUmlagefaehig = this.toNumber(property.hausgeldNichtUmlagefaehig);
+    const hausgeldRuecklage = this.toNumber(property.hausgeldRuecklage);
+    const netRent = annualRent - (hausgeldNichtUmlagefaehig * 12) - (hausgeldRuecklage * 12);
     const netYield = netRent / purchasePrice;
     
     // Cash on cash return (Year 1)
@@ -542,6 +554,7 @@ export class CalculationService {
             interestPortion: cf.interestPortion,
             principalPortion: cf.principalPortion,
             hausgeldNichtUmlagefaehig: cf.hausgeldNichtUmlagefaehig,
+            hausgeldRuecklage: cf.hausgeldRuecklage,
             otherCosts: cf.otherCosts,
             totalExpenses: cf.totalExpenses,
             normalDepreciation: cf.normalDepreciation,

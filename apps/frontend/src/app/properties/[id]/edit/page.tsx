@@ -59,7 +59,7 @@ export default function EditPropertyPage() {
 
   // Get investment assumptions and tax profile if they exist
   const investmentAssumptions = property.investmentAssumptions;
-  const taxProfile = property.taxProfile;
+  const taxProfile = property.taxProfile as { annualGrossIncome?: string; taxFilingType?: string } | undefined;
 
   // Convert property data to form format (decimals to percentages)
   const initialData = {
@@ -73,7 +73,9 @@ export default function EditPropertyPage() {
     purchasePrice: String(property.purchasePrice),
     rentalPricePerM2: String(property.rentalPricePerM2),
     hausgeldTotal: String(property.hausgeldTotal),
+    hausgeldUmlagefaehig: String(property.hausgeldUmlagefaehig || '0'),
     hausgeldNichtUmlagefaehig: String(property.hausgeldNichtUmlagefaehig),
+    hausgeldRuecklage: String(property.hausgeldRuecklage || '0'),
     parkingRentalIncome: String(property.parkingRentalIncome || '0'),
     parkingPrice: String(property.parkingPrice || '0'),
     rentIncrementFrequencyYears: String(property.rentIncrementFrequencyYears || '1'),

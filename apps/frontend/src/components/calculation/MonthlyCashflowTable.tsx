@@ -1,6 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Calendar } from 'lucide-react';
 import { YearlyCashflow } from '@/lib/hooks/use-calculation';
@@ -8,26 +9,39 @@ import { formatCurrency } from '@/lib/utils';
 
 interface MonthlyCashflowTableProps {
   cashflows: YearlyCashflow[];
+  viewMode: 'monthly' | 'yearly';
+  setViewMode: (mode: 'monthly' | 'yearly') => void;
 }
 
-export function MonthlyCashflowTable({ cashflows }: MonthlyCashflowTableProps) {
+export function MonthlyCashflowTable({ cashflows, viewMode, setViewMode }: MonthlyCashflowTableProps) {
+
   if (!cashflows || cashflows.length === 0) {
     return null;
   }
 
   // Display first 10 years
   const displayYears = cashflows.slice(0, 10);
+  const divisor = viewMode === 'monthly' ? 12 : 1;
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Calendar className="h-5 w-5" />
-          Monthly Cashflow Overview (10 Years)
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Tax refunds are received in the following year. All values shown as monthly averages.
-        </p>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Cashflow Overview (10 Years)
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Tax refunds are received in the following year. {viewMode === 'monthly' ? 'Monthly' : 'Yearly'} values shown.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setViewMode(viewMode === 'monthly' ? 'yearly' : 'monthly')}
+        >
+          {viewMode === 'monthly' ? 'Show Yearly' : 'Show Monthly'}
+        </Button>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
@@ -39,21 +53,24 @@ export function MonthlyCashflowTable({ cashflows }: MonthlyCashflowTableProps) {
                 <TableHead className="text-right">Maintenance (Out)</TableHead>
                 <TableHead className="text-right">Rental Income (In)</TableHead>
                 <TableHead className="text-right">Tax Refund (In)</TableHead>
-                <TableHead className="text-right">Monthly Cashflow</TableHead>
+                <TableHead className="text-right">Net Cashflow</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {displayYears.map((cf) => {
-                const monthlyMortgage = parseFloat(cf.mortgagePayment) / 12;
-                const monthlyKfw = parseFloat(cf.kfwPayment) / 12;
-                const monthlyMaintenance = parseFloat(cf.hausgeldNichtUmlagefaehig) / 12;
-                const monthlyRentalIncome = parseFloat(cf.rentalIncome) / 12;
-                const monthlyParkingIncome = parseFloat(cf.parkingIncome) / 12;
-                const monthlyTaxRefund = parseFloat(cf.taxRefund) / 12;
+                const mortgage = parseFloat(cf.mortgagePayment) / divisor;
+                const kfw = parseFloat(cf.kfwPayment) / divisor;
+                // Maintenance includes both administrative costs (tax-deductible) and reserve fund (non-deductible)
+                const hausgeldAdmin = parseFloat(cf.hausgeldNichtUmlagefaehig) / divisor;
+                const hausgeldReserve = parseFloat(cf.hausgeldRuecklage || '0') / divisor;
+                const maintenance = hausgeldAdmin + hausgeldReserve;
+                const rentalIncome = parseFloat(cf.rentalIncome) / divisor;
+                const parkingIncome = parseFloat(cf.parkingIncome) / divisor;
+                const taxRefund = parseFloat(cf.taxRefund) / divisor;
                 
-                const totalMonthlyMortgage = monthlyMortgage + monthlyKfw;
-                const totalMonthlyIncome = monthlyRentalIncome + monthlyParkingIncome;
-                const monthlyCashflow = parseFloat(cf.netCashflowAfterTax) / 12;
+                const totalMortgage = mortgage + kfw;
+                const totalIncome = rentalIncome + parkingIncome;
+                const netCashflow = parseFloat(cf.netCashflowAfterTax) / divisor;
 
                 return (
                   <TableRow key={cf.year}>
@@ -64,21 +81,21 @@ export function MonthlyCashflowTable({ cashflows }: MonthlyCashflowTableProps) {
                       </span>
                     </TableCell>
                     <TableCell className="text-right text-red-600">
-                      -{formatCurrency(totalMonthlyMortgage)}
+                      -{formatCurrency(totalMortgage)}
                     </TableCell>
                     <TableCell className="text-right text-red-600">
-                      -{formatCurrency(monthlyMaintenance)}
+                      -{formatCurrency(maintenance)}
                     </TableCell>
                     <TableCell className="text-right text-green-600">
-                      {formatCurrency(totalMonthlyIncome)}
+                      {formatCurrency(totalIncome)}
                     </TableCell>
                     <TableCell className="text-right text-green-600">
-                      {monthlyTaxRefund > 0 ? formatCurrency(monthlyTaxRefund) : '€0'}
+                      {taxRefund > 0 ? formatCurrency(taxRefund) : '€0'}
                     </TableCell>
                     <TableCell className={`text-right font-medium ${
-                      monthlyCashflow >= 0 ? 'text-green-600' : 'text-red-600'
+                      netCashflow >= 0 ? 'text-green-600' : 'text-red-600'
                     }`}>
-                      {formatCurrency(monthlyCashflow)}
+                      {formatCurrency(netCashflow)}
                     </TableCell>
                   </TableRow>
                 );

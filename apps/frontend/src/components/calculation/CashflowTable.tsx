@@ -10,22 +10,32 @@ import { formatCurrency } from '@/lib/utils';
 
 interface CashflowTableProps {
   cashflows: YearlyCashflow[];
+  viewMode: 'monthly' | 'yearly';
+  setViewMode: (mode: 'monthly' | 'yearly') => void;
 }
 
-export function CashflowTable({ cashflows }: CashflowTableProps) {
+export function CashflowTable({ cashflows, viewMode, setViewMode }: CashflowTableProps) {
   const [expanded, setExpanded] = useState(false);
   const [showAllColumns, setShowAllColumns] = useState(false);
   
   const displayedCashflows = expanded ? cashflows : cashflows.slice(0, 10);
+  const divisor = viewMode === 'monthly' ? 12 : 1;
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <TableIcon className="h-5 w-5" />
-          Yearly Cashflow Projection
+          Cashflow Projection
         </CardTitle>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setViewMode(viewMode === 'monthly' ? 'yearly' : 'monthly')}
+          >
+            {viewMode === 'monthly' ? 'Show Yearly' : 'Show Monthly'}
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -86,59 +96,59 @@ export function CashflowTable({ cashflows }: CashflowTableProps) {
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatCurrency(parseFloat(cf.rentalIncome))}
+                    {formatCurrency(parseFloat(cf.rentalIncome) / divisor)}
                   </TableCell>
                   {showAllColumns && (
                     <>
                       <TableCell className="text-right">
-                        {formatCurrency(parseFloat(cf.parkingIncome))}
+                        {formatCurrency(parseFloat(cf.parkingIncome) / divisor)}
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        {formatCurrency(parseFloat(cf.totalIncome))}
+                        {formatCurrency(parseFloat(cf.totalIncome) / divisor)}
                       </TableCell>
                     </>
                   )}
                   <TableCell className="text-right text-red-600">
-                    -{formatCurrency(parseFloat(cf.mortgagePayment))}
+                    -{formatCurrency(parseFloat(cf.mortgagePayment) / divisor)}
                   </TableCell>
                   {showAllColumns && (
                     <>
                       <TableCell className="text-right text-red-600">
-                        -{formatCurrency(parseFloat(cf.kfwPayment))}
+                        -{formatCurrency(parseFloat(cf.kfwPayment) / divisor)}
                       </TableCell>
                       <TableCell className="text-right">
-                        {formatCurrency(parseFloat(cf.interestPortion))}
+                        {formatCurrency(parseFloat(cf.interestPortion) / divisor)}
                       </TableCell>
                       <TableCell className="text-right">
-                        {formatCurrency(parseFloat(cf.principalPortion))}
+                        {formatCurrency(parseFloat(cf.principalPortion) / divisor)}
                       </TableCell>
                       <TableCell className="text-right">
-                        {formatCurrency(parseFloat(cf.hausgeldNichtUmlagefaehig))}
+                        {formatCurrency(parseFloat(cf.hausgeldNichtUmlagefaehig) / divisor)}
                       </TableCell>
                     </>
                   )}
                   <TableCell className="text-right text-red-600 font-medium">
-                    -{formatCurrency(parseFloat(cf.totalExpenses))}
+                    -{formatCurrency(parseFloat(cf.totalExpenses) / divisor)}
                   </TableCell>
                   {showAllColumns && (
                     <>
                       <TableCell className="text-right">
-                        {formatCurrency(parseFloat(cf.depreciationAmount))}
+                        {formatCurrency(parseFloat(cf.depreciationAmount) / divisor)}
                       </TableCell>
                       <TableCell className="text-right text-green-600">
-                        {formatCurrency(parseFloat(cf.taxRefund))}
+                        {formatCurrency(parseFloat(cf.taxRefund) / divisor)}
                       </TableCell>
                     </>
                   )}
                   <TableCell className={`text-right font-medium ${
                     parseFloat(cf.netCashflowAfterTax) >= 0 ? 'text-green-600' : 'text-red-600'
                   }`}>
-                    {formatCurrency(parseFloat(cf.netCashflowAfterTax))}
+                    {formatCurrency(parseFloat(cf.netCashflowAfterTax) / divisor)}
                   </TableCell>
                   <TableCell className={`text-right ${
                     parseFloat(cf.cumulativeCashflow) >= 0 ? 'text-green-600' : 'text-red-600'
                   }`}>
-                    {formatCurrency(parseFloat(cf.cumulativeCashflow))}
+                    {formatCurrency(parseFloat(cf.cumulativeCashflow) / divisor)}
                   </TableCell>
                   {showAllColumns && (
                     <>

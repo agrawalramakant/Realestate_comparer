@@ -14,6 +14,7 @@ export interface YearlyCashflow {
   interestPortion: string;
   principalPortion: string;
   hausgeldNichtUmlagefaehig: string;
+  hausgeldRuecklage: string;
   otherCosts: string;
   totalExpenses: string;
   normalDepreciation: string;

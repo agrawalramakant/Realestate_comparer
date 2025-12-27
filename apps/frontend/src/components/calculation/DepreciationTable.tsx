@@ -10,12 +10,15 @@ import { formatCurrency } from '@/lib/utils';
 
 interface DepreciationTableProps {
   cashflows: YearlyCashflow[];
+  viewMode: 'monthly' | 'yearly';
+  setViewMode: (mode: 'monthly' | 'yearly') => void;
 }
 
-export function DepreciationTable({ cashflows }: DepreciationTableProps) {
+export function DepreciationTable({ cashflows, viewMode, setViewMode }: DepreciationTableProps) {
   const [expanded, setExpanded] = useState(false);
   
   const displayedCashflows = expanded ? cashflows : cashflows.slice(0, 10);
+  const divisor = viewMode === 'monthly' ? 12 : 1;
 
   // Helper to safely parse numbers
   const safeParseFloat = (value: string | undefined | null): number => {
@@ -37,30 +40,37 @@ export function DepreciationTable({ cashflows }: DepreciationTableProps) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <Receipt className="h-5 w-5" />
           Depreciation & Tax Savings (AfA)
         </CardTitle>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setViewMode(viewMode === 'monthly' ? 'yearly' : 'monthly')}
+        >
+          {viewMode === 'monthly' ? 'Show Yearly' : 'Show Monthly'}
+        </Button>
       </CardHeader>
       <CardContent>
         {/* Summary Cards */}
         <div className="grid gap-4 md:grid-cols-4 mb-6">
           <div className="p-4 bg-muted rounded-lg text-center">
-            <div className="text-2xl font-bold">{formatCurrency(totals.normalDepreciation)}</div>
-            <div className="text-sm text-muted-foreground">Total Normal AfA</div>
+            <div className="text-2xl font-bold">{formatCurrency(totals.normalDepreciation / divisor)}</div>
+            <div className="text-sm text-muted-foreground">{viewMode === 'monthly' ? 'Monthly' : 'Total'} Normal AfA</div>
           </div>
           <div className="p-4 bg-muted rounded-lg text-center">
-            <div className="text-2xl font-bold">{formatCurrency(totals.specialDepreciation)}</div>
-            <div className="text-sm text-muted-foreground">Total Sonder-AfA</div>
+            <div className="text-2xl font-bold">{formatCurrency(totals.specialDepreciation / divisor)}</div>
+            <div className="text-sm text-muted-foreground">{viewMode === 'monthly' ? 'Monthly' : 'Total'} Sonder-AfA</div>
           </div>
           <div className="p-4 bg-muted rounded-lg text-center">
-            <div className="text-2xl font-bold">{formatCurrency(totals.totalDepreciation)}</div>
-            <div className="text-sm text-muted-foreground">Total Depreciation</div>
+            <div className="text-2xl font-bold">{formatCurrency(totals.totalDepreciation / divisor)}</div>
+            <div className="text-sm text-muted-foreground">{viewMode === 'monthly' ? 'Monthly' : 'Total'} Depreciation</div>
           </div>
           <div className="p-4 bg-green-100 dark:bg-green-900/30 rounded-lg text-center">
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(totals.taxSaving)}</div>
-            <div className="text-sm text-muted-foreground">Total Tax Savings</div>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(totals.taxSaving / divisor)}</div>
+            <div className="text-sm text-muted-foreground">{viewMode === 'monthly' ? 'Monthly' : 'Total'} Tax Savings</div>
           </div>
         </div>
 
@@ -87,25 +97,25 @@ export function DepreciationTable({ cashflows }: DepreciationTableProps) {
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatCurrency(safeParseFloat(cf.normalDepreciation))}
+                    {formatCurrency(safeParseFloat(cf.normalDepreciation) / divisor)}
                   </TableCell>
                   <TableCell className="text-right">
                     {safeParseFloat(cf.specialDepreciation) > 0 ? (
                       <span className="text-blue-600 font-medium">
-                        {formatCurrency(safeParseFloat(cf.specialDepreciation))}
+                        {formatCurrency(safeParseFloat(cf.specialDepreciation) / divisor)}
                       </span>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell className="text-right font-medium">
-                    {formatCurrency(safeParseFloat(cf.depreciationAmount))}
+                    {formatCurrency(safeParseFloat(cf.depreciationAmount) / divisor)}
                   </TableCell>
                   <TableCell className="text-right">
                     {(safeParseFloat(cf.marginalTaxRate) * 100).toFixed(1)}%
                   </TableCell>
                   <TableCell className="text-right text-green-600 font-medium">
-                    {formatCurrency(safeParseFloat(cf.taxSavingOnDepreciation))}
+                    {formatCurrency(safeParseFloat(cf.taxSavingOnDepreciation) / divisor)}
                   </TableCell>
                 </TableRow>
               ))}
