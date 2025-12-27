@@ -58,6 +58,28 @@ function getAfaRate(afaType: string | undefined): string {
   return AFA_RATES[afaType] || '2.0%';
 }
 
+function getTransferTaxRate(state: string | undefined): number {
+  const rates: Record<string, number> = {
+    BADEN_WUERTTEMBERG: 0.05,
+    BAYERN: 0.035,
+    BERLIN: 0.06,
+    BRANDENBURG: 0.065,
+    BREMEN: 0.05,
+    HAMBURG: 0.045,
+    HESSEN: 0.06,
+    MECKLENBURG_VORPOMMERN: 0.06,
+    NIEDERSACHSEN: 0.05,
+    NORDRHEIN_WESTFALEN: 0.065,
+    RHEINLAND_PFALZ: 0.05,
+    SAARLAND: 0.065,
+    SACHSEN: 0.035,
+    SACHSEN_ANHALT: 0.05,
+    SCHLESWIG_HOLSTEIN: 0.065,
+    THUERINGEN: 0.065,
+  };
+  return state ? rates[state] ?? 0.06 : 0.06;
+}
+
 export default function PropertyDetailPage() {
   const params = useParams();
   const id = params.id as string;
@@ -86,6 +108,21 @@ export default function PropertyDetailPage() {
   }
 
   const pricePerSqm = parseFloat(property.purchasePrice) / parseFloat(property.propertySize);
+  
+  // Calculate total acquisition cost
+  const purchasePrice = parseFloat(property.purchasePrice);
+  const transferRate = getTransferTaxRate(property.state);
+  const notaryRate = 0.015;
+  const registryRate = 0.005;
+  const brokerFee = purchasePrice * parseFloat(property.maklerFeePercent);
+  const transferTax = purchasePrice * transferRate;
+  const notaryCost = purchasePrice * notaryRate;
+  const registryCost = purchasePrice * registryRate;
+  const totalAcquisition = purchasePrice + transferTax + notaryCost + registryCost + brokerFee;
+  
+  // Calculate land value
+  const landValuePercent = parseFloat(property.landValuePercent as unknown as string);
+  const landValue = totalAcquisition * landValuePercent;
 
   return (
     <div className="space-y-6">
@@ -118,7 +155,7 @@ export default function PropertyDetailPage() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -129,6 +166,21 @@ export default function PropertyDetailPage() {
             <div className="text-2xl font-bold">
               {formatCurrency(property.purchasePrice)}
             </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Acquisition
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {formatCurrency(totalAcquisition)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              incl. taxes & fees
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -179,7 +231,7 @@ export default function PropertyDetailPage() {
             {property.address && <DetailItem label="Address" value={property.address} />}
             <DetailItem label="Construction Year" value={property.constructionYear ? String(property.constructionYear) : 'N/A'} />
             <DetailItem label="Number of Rooms" value={property.numberOfRooms ? String(property.numberOfRooms) : 'N/A'} />
-            <DetailItem label="Land Value" value={`${(parseFloat(property.landValuePercent as unknown as string) * 100).toFixed(0)}%`} />
+            <DetailItem label="Land Value" value={`${(landValuePercent * 100).toFixed(0)}% (${formatCurrency(landValue)})`} />
           </div>
         </CardContent>
       </Card>
@@ -201,6 +253,9 @@ export default function PropertyDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Acquisition Costs */}
+      <AcquisitionCosts property={property} />
 
       {/* Costs & Fees */}
       <Card>
@@ -370,6 +425,37 @@ function QuickMetrics({ property }: { property: Property }) {
               (incl. taxes & fees)
             </div>
           </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AcquisitionCosts({ property }: { property: Property }) {
+  const purchasePrice = parseFloat(property.purchasePrice);
+  const state = property.state;
+  const transferRate = getTransferTaxRate(state);
+  const notaryRate = 0.015;
+  const registryRate = 0.005;
+  const brokerFee = purchasePrice * parseFloat(property.maklerFeePercent);
+  const transferTax = purchasePrice * transferRate;
+  const notaryCost = purchasePrice * notaryRate;
+  const registryCost = purchasePrice * registryRate;
+  const totalAcquisition = purchasePrice + transferTax + notaryCost + registryCost + brokerFee;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Acquisition Costs</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <DetailItem label="Purchase Price" value={formatCurrency(purchasePrice)} />
+          <DetailItem label="Transfer Tax" value={`${formatCurrency(transferTax)} (${(transferRate * 100).toFixed(2)}%)`} />
+          <DetailItem label="Notary" value={`${formatCurrency(notaryCost)} (1.5%)`} />
+          <DetailItem label="Land Registry" value={`${formatCurrency(registryCost)} (0.5%)`} />
+          <DetailItem label="Broker Fee" value={formatCurrency(brokerFee)} />
+          <DetailItem label="Total Acquisition" value={formatCurrency(totalAcquisition)} />
         </div>
       </CardContent>
     </Card>
